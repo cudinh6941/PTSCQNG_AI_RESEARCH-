@@ -18,6 +18,7 @@ import asyncio
 import json
 import time
 from dataclasses import dataclass
+from typing import Any
 
 from core.common.config import settings
 from core.common.logger import logger
@@ -104,6 +105,7 @@ class LLMService:
         temperature: float = 0.2,
         max_tokens: int = 8192,
         response_mime_type: str | None = None,
+        enable_search: bool = False,
     ) -> LLMResult:
         """
         Gọi LLM để generate text.
@@ -115,6 +117,7 @@ class LLMService:
             model: Model name (default từ settings theo provider)
             temperature: Creativity level (0-1)
             max_tokens: Max output tokens
+            enable_search: Bật Google Search Grounding để tra cứu dữ liệu/luật thời gian thực
 
         Returns:
             LLMResult với content, token counts, cost estimate
@@ -141,7 +144,7 @@ class LLMService:
         else:
             model = str(model).strip()
 
-        logger.info(f"LLM Request: provider={provider.value}, model={model}")
+        logger.info(f"LLM Request: provider={provider.value}, model={model}, search_grounding={enable_search}")
         start_time = time.time()
 
         max_retries = 3
@@ -151,11 +154,11 @@ class LLMService:
             try:
                 # Route to correct provider
                 if provider == LLMProvider.MOCK:
-                    result = await self._call_mock(prompt, system_prompt, model, temperature, max_tokens)
+                    result = await self._call_mock(prompt, system_prompt, model, temperature, max_tokens, enable_search)
                 elif provider == LLMProvider.OPENAI:
                     result = await self._call_openai(prompt, system_prompt, model, temperature, max_tokens)
                 elif provider == LLMProvider.GEMINI:
-                    result = await self._call_gemini(prompt, system_prompt, model, temperature, max_tokens)
+                    result = await self._call_gemini(prompt, system_prompt, model, temperature, max_tokens, enable_search)
                 elif provider == LLMProvider.CLAUDE:
                     result = await self._call_claude(prompt, system_prompt, model, temperature, max_tokens)
                 else:
@@ -232,7 +235,7 @@ class LLMService:
 
     async def _call_gemini(
         self, prompt: str, system_prompt: str, model: str,
-        temperature: float, max_tokens: int,
+        temperature: float, max_tokens: int, enable_search: bool = False,
     ) -> LLMResult:
         client = self._get_gemini_client()
 
@@ -240,15 +243,22 @@ class LLMService:
         if system_prompt:
             full_prompt = f"{system_prompt}\n\n---\n\n{prompt}"
 
+        gen_config: dict[str, Any] = {
+            "temperature": temperature,
+            "max_output_tokens": max_tokens,
+            "thinking_config": {"thinking_budget": 0},
+        }
+
+        if enable_search:
+            # Tích hợp Google Search Grounding để tra cứu luật và dữ liệu mới nhất
+            gen_config["tools"] = [{"google_search": {}}]
+        else:
+            gen_config["response_mime_type"] = "application/json"
+
         response = await client.aio.models.generate_content(
             model=model,
             contents=full_prompt,
-            config={
-                "temperature": temperature,
-                "max_output_tokens": max_tokens,
-                "response_mime_type": "application/json",
-                "thinking_config": {"thinking_budget": 0},
-            },
+            config=gen_config,
         )
 
         content = ""
@@ -325,13 +335,39 @@ class LLMService:
 
     async def _call_mock(
         self, prompt: str, system_prompt: str, model: str,
-        temperature: float, max_tokens: int,
+        temperature: float, max_tokens: int, enable_search: bool = False,
     ) -> LLMResult:
         """Mock LLM response để test offline ngay lập tức khi chưa có API key."""
         await asyncio.sleep(0.3)  # Giả lập độ trễ mạng nhanh
 
         errors = []
         lower_prompt = prompt.lower()
+
+        # Giả lập kiểm tra pháp lý & tra cứu luật thời gian thực
+        if "luật" in lower_prompt or "nghị định" in lower_prompt or "quyết định" in lower_prompt or enable_search:
+            if "chuyển đổi số" in lower_prompt:
+                errors.append({
+                    "original": "Luật Chuyển đổi số",
+                    "suggestion": "Luật Công nghiệp công nghệ số (Dự thảo/Kỳ họp Quốc hội) hoặc Quyết định số 749/QĐ-TTg",
+                    "type": "legal",
+                    "severity": "high",
+                    "explanation": "Hiện tại chưa có văn bản quy phạm mang tên độc lập 'Luật Chuyển đổi số'. Các chính sách CĐS quốc gia được quy định tại Quyết định 749/QĐ-TTg và đang được tích hợp vào dự thảo Luật Công nghiệp công nghệ số trình Quốc hội.",
+                    "source_link": "https://chinhphu.vn",
+                    "reference": "Quyết định 749/QĐ-TTg & Cổng TTĐT Chính phủ",
+                    "context": "...Luật Chuyển đổi số..."
+                })
+            if "đấu thầu 2013" in lower_prompt or "luật đấu thầu số 43" in lower_prompt:
+                errors.append({
+                    "original": "Luật Đấu thầu 2013",
+                    "suggestion": "Luật Đấu thầu số 22/2023/QH15 (có hiệu lực từ 01/01/2024)",
+                    "type": "legal",
+                    "severity": "high",
+                    "explanation": "Luật Đấu thầu số 43/2013/QH13 đã hết hiệu lực và được thay thế toàn diện bởi Luật Đấu thầu số 22/2023/QH15.",
+                    "source_link": "https://thuvienphapluat.vn",
+                    "reference": "Luật Đấu thầu 2023 (Luật số 22/2023/QH15)",
+                    "context": "...Luật Đấu thầu 2013..."
+                })
+
         if "bổ xung" in lower_prompt:
             errors.append({
                 "original": "bổ xung",
@@ -372,11 +408,11 @@ class LLMService:
                 }
             ]
 
-        score = round(max(5.0, 10.0 - len(errors) * 1.0), 1)
+        score = round(max(4.0, 10.0 - len(errors) * 1.5), 1)
         mock_data = {
             "total_errors": len(errors),
             "errors": errors,
-            "summary": f"[MOCK DEMO] Đã rà soát văn bản thành công trong chế độ Offline Test. Phát hiện {len(errors)} điểm cần lưu ý và chuẩn hóa.",
+            "summary": f"[MOCK DEMO] Đã rà soát và đối chiếu dữ liệu thành công trong chế độ Offline Test. Phát hiện {len(errors)} điểm cần lưu ý và chuẩn hóa.",
             "score": score,
         }
 

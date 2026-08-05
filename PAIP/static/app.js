@@ -19,10 +19,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // DOM Elements - Left Panel (Editor & Upload)
   const tabTextBtn = document.getElementById('tabTextBtn');
+  const tabHighlightBtn = document.getElementById('tabHighlightBtn');
+  const highlightCount = document.getElementById('highlightCount');
   const tabFileBtn = document.getElementById('tabFileBtn');
   const textModeContainer = document.getElementById('textModeContainer');
   const fileModeContainer = document.getElementById('fileModeContainer');
   const documentText = document.getElementById('documentText');
+  const interactiveViewer = document.getElementById('interactiveViewer');
+  const quickFixTooltip = document.getElementById('quickFixTooltip');
+  const tooltipBadge = document.getElementById('tooltipBadge');
+  const tooltipTypeLabel = document.getElementById('tooltipTypeLabel');
+  const tooltipOriginal = document.getElementById('tooltipOriginal');
+  const tooltipSuggested = document.getElementById('tooltipSuggested');
+  const tooltipExplanation = document.getElementById('tooltipExplanation');
+  const tooltipLegalRef = document.getElementById('tooltipLegalRef');
+  const btnTooltipApply = document.getElementById('btnTooltipApply');
+  const btnTooltipFocus = document.getElementById('btnTooltipFocus');
+  let activeTooltipErrorId = null;
+
   const fileInput = document.getElementById('fileInput');
   const fileSelectedCard = document.getElementById('fileSelectedCard');
   const selectedFileName = document.getElementById('selectedFileName');
@@ -48,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const toastContainer = document.getElementById('toastContainer');
 
   // Application State
-  let currentInputTab = 'text'; // 'text' | 'file'
+  let currentInputTab = 'text'; // 'text' | 'highlight' | 'file'
   let selectedFile = null;
   let currentUploadedFilename = '';
   let currentErrors = [];
@@ -65,9 +79,26 @@ Kính đề nghị Ban lảnh đạo xem xét phê duyệt phương án bổ xun
   function switchToTextTab() {
     currentInputTab = 'text';
     tabTextBtn.classList.add('active');
+    tabHighlightBtn.classList.remove('active');
     tabFileBtn.classList.remove('active');
+    documentText.style.display = 'block';
+    interactiveViewer.style.display = 'none';
     textModeContainer.style.display = 'flex';
     fileModeContainer.style.display = 'none';
+    hideQuickFixTooltip();
+    updateStats();
+  }
+
+  function switchToHighlightTab() {
+    currentInputTab = 'highlight';
+    tabHighlightBtn.classList.add('active');
+    tabTextBtn.classList.remove('active');
+    tabFileBtn.classList.remove('active');
+    documentText.style.display = 'none';
+    interactiveViewer.style.display = 'block';
+    textModeContainer.style.display = 'flex';
+    fileModeContainer.style.display = 'none';
+    renderInteractiveHighlights();
     updateStats();
   }
 
@@ -75,11 +106,14 @@ Kính đề nghị Ban lảnh đạo xem xét phê duyệt phương án bổ xun
     currentInputTab = 'file';
     tabFileBtn.classList.add('active');
     tabTextBtn.classList.remove('active');
+    tabHighlightBtn.classList.remove('active');
     textModeContainer.style.display = 'none';
     fileModeContainer.style.display = 'flex';
+    hideQuickFixTooltip();
   }
 
   tabTextBtn.addEventListener('click', switchToTextTab);
+  tabHighlightBtn.addEventListener('click', switchToHighlightTab);
   tabFileBtn.addEventListener('click', switchToFileTab);
 
   // ── 2. Word & Character Counter ─────────────────────────
@@ -225,16 +259,30 @@ Kính đề nghị Ban lảnh đạo xem xét phê duyệt phương án bổ xun
     }
   }
 
-  async function analyzeText(text, mode, model, customInstructions) {
+  function parseSelectedModel(rawValue) {
+    if (!rawValue) return { provider: 'gemini', model: 'gemini-2.5-flash' };
+    if (rawValue.includes(':')) {
+      const parts = rawValue.split(':');
+      return { provider: parts[0], model: parts[1] };
+    }
+    if (rawValue === 'mock') return { provider: 'mock', model: 'mock' };
+    if (rawValue === 'openai') return { provider: 'openai', model: 'gpt-4o-mini' };
+    if (rawValue === 'claude') return { provider: 'claude', model: 'claude-3-5-sonnet-20241022' };
+    return { provider: 'gemini', model: 'gemini-2.5-flash' };
+  }
+
+  async function analyzeText(text, mode, rawModel, customInstructions) {
     setAnalyzingState(true);
     renderLoadingState();
 
     try {
+      const { provider, model } = parseSelectedModel(rawModel);
       const payload = {
         document_text: text,
         mode: mode,
         custom_instructions: customInstructions || null,
-        provider: model === 'mock' ? 'mock' : (model === 'openai' ? 'openai' : 'gemini')
+        provider: provider,
+        model: model
       };
 
       const response = await fetch('/api/v1/proofread/text', {
@@ -254,18 +302,20 @@ Kính đề nghị Ban lảnh đạo xem xét phê duyệt phương án bổ xun
     }
   }
 
-  async function analyzeFile(file, mode, model, customInstructions) {
+  async function analyzeFile(file, mode, rawModel, customInstructions) {
     setAnalyzingState(true);
     renderLoadingState();
 
     try {
+      const { provider, model } = parseSelectedModel(rawModel);
       const formData = new FormData();
       formData.append('file', file);
       formData.append('mode', mode);
       if (customInstructions) {
         formData.append('custom_instructions', customInstructions);
       }
-      formData.append('provider', model === 'mock' ? 'mock' : (model === 'openai' ? 'openai' : 'gemini'));
+      formData.append('provider', provider);
+      formData.append('model', model);
 
       const response = await fetch('/api/v1/proofread/file', {
         method: 'POST',
@@ -317,20 +367,27 @@ Kính đề nghị Ban lảnh đạo xem xét phê duyệt phương án bổ xun
 
     // Render Stats
     const latency = Math.round(data.processing_time_ms || 0);
-    latencyStats.textContent = `Tốc độ: ${latency}ms • Tokens lần này: ${tokens}`;
+    const modelUsed = data.model_used || 'AI Engine';
+    latencyStats.textContent = `Model: ${modelUsed} • Tốc độ: ${latency}ms • Tokens: ${tokens}`;
 
     // Render Score & Banner
     renderScore(result.score);
     renderScoreDetails(result);
 
-    // Render Error Cards
+    // Render Error Cards & Highlights
     updateFilterCounts();
     renderErrorCards();
 
-    if (currentErrors.length === 0) {
-      showToast('Tuyệt vời! Không phát hiện lỗi nào trong văn bản.', 'info');
+    const pendingErrors = currentErrors.filter(e => !e.dismissed);
+    if (pendingErrors.length > 0) {
+      tabHighlightBtn.style.display = 'inline-block';
+      highlightCount.textContent = pendingErrors.length;
+      switchToHighlightTab();
+      showToast(`Đã phát hiện ${pendingErrors.length} điểm cần chuẩn hóa.`);
     } else {
-      showToast(`Đã phát hiện ${currentErrors.length} điểm cần chuẩn hóa.`);
+      tabHighlightBtn.style.display = 'none';
+      switchToTextTab();
+      showToast('Tuyệt vời! Không phát hiện lỗi nào trong văn bản.', 'info');
     }
   }
 
@@ -376,7 +433,8 @@ Kính đề nghị Ban lảnh đạo xem xét phê duyệt phương án bổ xun
       spelling: pendingErrors.filter(e => e.type === 'spelling').length,
       grammar: pendingErrors.filter(e => e.type === 'grammar').length,
       word_choice: pendingErrors.filter(e => e.type === 'word_choice').length,
-      punctuation: pendingErrors.filter(e => e.type === 'punctuation').length
+      punctuation: pendingErrors.filter(e => e.type === 'punctuation').length,
+      legal: pendingErrors.filter(e => e.type === 'legal').length
     };
 
     document.getElementById('filterAll').textContent = `Tất cả (${counts.all})`;
@@ -384,6 +442,30 @@ Kính đề nghị Ban lảnh đạo xem xét phê duyệt phương án bổ xun
     document.getElementById('filterGrammar').textContent = `Ngữ pháp (${counts.grammar})`;
     document.getElementById('filterWordChoice').textContent = `Dùng từ (${counts.word_choice})`;
     document.getElementById('filterPunct').textContent = `Dấu câu (${counts.punctuation})`;
+    const filterLegal = document.getElementById('filterLegal');
+    if (filterLegal) {
+      filterLegal.textContent = `⚖️ Pháp lý (${counts.legal})`;
+    }
+
+    highlightCount.textContent = counts.all;
+    if (counts.all === 0) {
+      tabHighlightBtn.style.display = 'none';
+    } else {
+      tabHighlightBtn.style.display = 'inline-block';
+    }
+  }
+
+  function extractContextSnippet(fullText, targetWord) {
+    if (!fullText || !targetWord) return '';
+    const index = fullText.indexOf(targetWord);
+    if (index === -1) return '';
+
+    const start = Math.max(0, index - 35);
+    const end = Math.min(fullText.length, index + targetWord.length + 35);
+    const prefix = (start > 0 ? '...' : '') + fullText.substring(start, index);
+    const suffix = fullText.substring(index + targetWord.length, end) + (end < fullText.length ? '...' : '');
+
+    return `${escapeHtml(prefix)}<mark class="snippet-mark">${escapeHtml(targetWord)}</mark>${escapeHtml(suffix)}`;
   }
 
   function renderErrorCards() {
@@ -413,16 +495,44 @@ Kính đề nghị Ban lảnh đạo xem xét phê duyệt phương án bổ xun
       return;
     }
 
+    const currentFullText = documentText.value || '';
     let html = '';
+
     filtered.forEach(err => {
       const typeLabel = getTypeLabel(err.type);
       const badgeClass = `badge-${err.type}`;
       const original = escapeHtml(err.original);
       const suggested = escapeHtml(err.suggested || err.suggestion || '');
       const explanation = escapeHtml(err.explanation);
+      const snippet = extractContextSnippet(currentFullText, err.original);
+
+      let snippetHtml = '';
+      if (snippet) {
+        snippetHtml = `
+          <div class="context-snippet-box">
+            <div style="font-size: 0.68rem; color: var(--text-muted); margin-bottom: 2px;">📍 Ngữ cảnh trong bài:</div>
+            <div>${snippet}</div>
+          </div>
+        `;
+      }
+
+      let referenceHtml = '';
+      if (err.reference || err.source_link) {
+        const refText = escapeHtml(err.reference || 'Căn cứ pháp luật hiện hành');
+        const linkHtml = err.source_link 
+          ? `<a href="${escapeHtml(err.source_link)}" target="_blank" rel="noopener noreferrer" class="legal-reference-link" onclick="event.stopPropagation();">Tra cứu nguồn ↗</a>`
+          : '';
+        referenceHtml = `
+          <div class="legal-reference-box">
+            <span class="legal-reference-icon">⚖️</span>
+            <span><strong>Căn cứ:</strong> ${refText}</span>
+            ${linkHtml}
+          </div>
+        `;
+      }
 
       html += `
-        <div class="error-card" data-id="${err.id}">
+        <div class="error-card" data-id="${err.id}" onclick="window.focusErrorInText('${err.id}')">
           <div class="error-card-header">
             <span class="error-badge ${badgeClass}">${typeLabel}</span>
             <span style="font-size: 0.72rem; color: var(--text-muted);">${getSeverityLabel(err.severity)}</span>
@@ -434,10 +544,12 @@ Kính đề nghị Ban lảnh đạo xem xét phê duyệt phương án bổ xun
             <span class="diff-suggested">${suggested}</span>
           </div>
 
+          ${snippetHtml}
           <div class="error-explanation">${explanation}</div>
+          ${referenceHtml}
 
           <div class="card-actions">
-            <button class="btn-apply-single" onclick="window.applySingleError('${err.id}')">
+            <button class="btn-apply-single" onclick="event.stopPropagation(); window.applySingleError('${err.id}')">
               Áp dụng
             </button>
           </div>
@@ -448,12 +560,167 @@ Kính đề nghị Ban lảnh đạo xem xét phê duyệt phương án bổ xun
     errorListContainer.innerHTML = html;
   }
 
+  // ── In-Text Highlighting Visualizer ─────────────────────
+  function renderInteractiveHighlights() {
+    const rawText = documentText.value || '';
+    const pendingErrors = currentErrors.filter(e => !e.dismissed && e.original);
+
+    if (!rawText) {
+      interactiveViewer.innerHTML = '<div style="color: var(--text-muted); font-style: italic;">Chưa có nội dung văn bản.</div>';
+      return;
+    }
+
+    if (pendingErrors.length === 0) {
+      interactiveViewer.innerHTML = `
+        <div style="background: rgba(16, 185, 129, 0.1); border: 1px dashed rgba(16, 185, 129, 0.3); padding: 10px 14px; border-radius: var(--radius-sm); margin-bottom: 14px; color: #34d399; font-weight: 600; font-size: 0.86rem;">
+          🎉 Tuyệt vời! Toàn bộ văn bản đã sạch lỗi và chuẩn mực.
+        </div>
+        <div>${escapeHtml(rawText).replace(/\n/g, '<br>')}</div>
+      `;
+      return;
+    }
+
+    let annotatedText = escapeHtml(rawText);
+
+    // Sort by longest original text first to prevent partial substring collision
+    const sortedErrors = [...pendingErrors].sort((a, b) => (b.original || '').length - (a.original || '').length);
+
+    sortedErrors.forEach(err => {
+      const orig = escapeHtml(err.original);
+      if (!orig) return;
+      const regex = new RegExp(escapeRegex(orig), 'g');
+      const badgeClass = `highlight-${err.type}`;
+      annotatedText = annotatedText.replace(regex, `<mark class="highlight-error ${badgeClass}" data-id="${err.id}" id="mark_${err.id}">${orig}</mark>`);
+    });
+
+    interactiveViewer.innerHTML = annotatedText.replace(/\n/g, '<br>');
+
+    // Bind hover & click events on highlighted marks
+    const marks = interactiveViewer.querySelectorAll('.highlight-error');
+    marks.forEach(mark => {
+      mark.addEventListener('mouseenter', () => {
+        showQuickFixTooltip(mark.dataset.id, mark);
+      });
+      mark.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showQuickFixTooltip(mark.dataset.id, mark);
+        focusCardFromText(mark.dataset.id);
+      });
+    });
+  }
+
+  function escapeRegex(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  // ── Floating Quick-Fix Tooltip ──────────────────────────
+  function showQuickFixTooltip(id, anchorEl) {
+    const err = currentErrors.find(e => e.id === id);
+    if (!err || err.dismissed) {
+      hideQuickFixTooltip();
+      return;
+    }
+
+    activeTooltipErrorId = id;
+    tooltipBadge.className = `error-badge badge-${err.type}`;
+    tooltipBadge.textContent = getTypeLabel(err.type);
+    tooltipTypeLabel.textContent = getSeverityLabel(err.severity);
+    tooltipOriginal.textContent = err.original;
+    tooltipSuggested.textContent = err.suggested || err.suggestion || '';
+    tooltipExplanation.textContent = err.explanation;
+
+    if (err.reference) {
+      tooltipLegalRef.style.display = 'block';
+      tooltipLegalRef.textContent = `⚖️ Căn cứ: ${err.reference}`;
+    } else {
+      tooltipLegalRef.style.display = 'none';
+    }
+
+    // Position tooltip relative to textModeContainer
+    const containerRect = textModeContainer.getBoundingClientRect();
+    const anchorRect = anchorEl.getBoundingClientRect();
+
+    let top = anchorRect.bottom - containerRect.top + textModeContainer.scrollTop + 8;
+    let left = anchorRect.left - containerRect.left + textModeContainer.scrollLeft - 20;
+
+    // Boundary check
+    if (left < 10) left = 10;
+    if (left + 300 > containerRect.width) left = Math.max(10, containerRect.width - 310);
+
+    quickFixTooltip.style.top = `${top}px`;
+    quickFixTooltip.style.left = `${left}px`;
+    quickFixTooltip.style.display = 'block';
+  }
+
+  function hideQuickFixTooltip() {
+    if (quickFixTooltip) {
+      quickFixTooltip.style.display = 'none';
+    }
+    activeTooltipErrorId = null;
+  }
+
+  // Close tooltip when clicking outside
+  document.addEventListener('click', (e) => {
+    if (quickFixTooltip && !quickFixTooltip.contains(e.target) && !e.target.classList.contains('highlight-error')) {
+      hideQuickFixTooltip();
+    }
+  });
+
+  if (btnTooltipApply) {
+    btnTooltipApply.addEventListener('click', () => {
+      if (activeTooltipErrorId) {
+        window.applySingleError(activeTooltipErrorId);
+        hideQuickFixTooltip();
+      }
+    });
+  }
+
+  if (btnTooltipFocus) {
+    btnTooltipFocus.addEventListener('click', () => {
+      if (activeTooltipErrorId) {
+        focusCardFromText(activeTooltipErrorId);
+        hideQuickFixTooltip();
+      }
+    });
+  }
+
+  // ── Bi-directional Scrolling & Focus Synchronization ───
+  window.focusErrorInText = function(id) {
+    if (currentInputTab !== 'highlight') {
+      switchToHighlightTab();
+    }
+    hideQuickFixTooltip();
+
+    setTimeout(() => {
+      const markEl = document.getElementById(`mark_${id}`);
+      if (markEl) {
+        markEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        markEl.classList.remove('highlight-pulse');
+        void markEl.offsetWidth;
+        markEl.classList.add('highlight-pulse');
+        setTimeout(() => markEl.classList.remove('highlight-pulse'), 3000);
+      }
+    }, 50);
+  };
+
+  function focusCardFromText(id) {
+    const card = document.querySelector(`.error-card[data-id="${id}"]`);
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.classList.remove('card-focused');
+      void card.offsetWidth;
+      card.classList.add('card-focused');
+      setTimeout(() => card.classList.remove('card-focused'), 2500);
+    }
+  }
+
   function getTypeLabel(type) {
     const map = {
       spelling: 'Chính tả',
       grammar: 'Ngữ pháp',
       word_choice: 'Dùng từ',
-      punctuation: 'Dấu câu'
+      punctuation: 'Dấu câu',
+      legal: '⚖️ Pháp lý & Luật'
     };
     return map[type] || 'Lỗi';
   }
@@ -516,6 +783,9 @@ Kính đề nghị Ban lảnh đạo xem xét phê duyệt phương án bổ xun
 
     updateFilterCounts();
     renderErrorCards();
+    if (currentInputTab === 'highlight') {
+      renderInteractiveHighlights();
+    }
   };
 
   // ── 9. Apply All Errors ─────────────────────────────────
@@ -544,6 +814,9 @@ Kính đề nghị Ban lảnh đạo xem xét phê duyệt phương án bổ xun
     updateStats();
     updateFilterCounts();
     renderErrorCards();
+    if (currentInputTab === 'highlight') {
+      renderInteractiveHighlights();
+    }
     renderScore(10.0);
     scoreTitle.textContent = 'Đã Chuẩn Hóa Toàn Bộ! 🎉';
     scoreSummary.textContent = `Đã tự động thay thế ${count} vị trí từ trong văn bản.`;
@@ -668,6 +941,9 @@ Kính đề nghị Ban lảnh đạo xem xét phê duyệt phương án bổ xun
     scoreTitle.textContent = 'Sẵn Sàng Phân Tích';
     scoreSummary.textContent = 'Nhập văn bản hoặc tải file lên, sau đó bấm "Bắt Đầu Rà Soát" để AI quét lỗi.';
     latencyStats.textContent = 'Tốc độ: -- ms • Tokens: --';
+    tabHighlightBtn.style.display = 'none';
+    switchToTextTab();
+    hideQuickFixTooltip();
     updateFilterCounts();
     renderErrorCards();
   }

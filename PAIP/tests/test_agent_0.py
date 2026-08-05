@@ -292,5 +292,67 @@ class TestDocumentWriterFormatPreservation:
         assert "khẩn cấp." in last_run.text
 
 
+# ── Unit Tests: Legal Verification & Real-time Grounding ──
 
+class TestLegalSearchGrounding:
+    """Test tính năng thẩm định pháp lý và tra cứu văn bản quy phạm pháp luật."""
 
+    @pytest.mark.asyncio
+    async def test_legal_mode_detects_law_and_returns_legal_type(self):
+        from agents.agent_0_proofreader.service import proofreader_service
+        from agents.agent_0_proofreader.schemas import ErrorType
+
+        doc_text = "Căn cứ theo Luật Chuyển đổi số và Luật Đấu thầu 2013 để tiến hành lựa chọn nhà thầu."
+        res = await proofreader_service.proofread_text(
+            text=doc_text,
+            mode="legal",
+            provider=LLMProvider.MOCK,
+        )
+
+        assert res.success is True
+        assert res.result is not None
+        assert res.result.total_errors > 0
+
+        # Kiểm tra có ít nhất 1 lỗi thuộc ErrorType.LEGAL
+        legal_errors = [e for e in res.result.errors if e.type == ErrorType.LEGAL]
+        assert len(legal_errors) >= 1
+
+        # Kiểm tra nội dung trích dẫn & căn cứ pháp lý
+        first_legal = legal_errors[0]
+        assert first_legal.reference is not None or "Quy định" in first_legal.explanation or "Luật" in first_legal.explanation
+
+    @pytest.mark.asyncio
+    async def test_custom_instructions_law_keyword_triggers_search(self):
+        from agents.agent_0_proofreader.service import proofreader_service
+        from agents.agent_0_proofreader.schemas import ErrorType
+
+        doc_text = "Thực hiện theo Luật Đấu thầu số 43/2013/QH13."
+        res = await proofreader_service.proofread_text(
+            text=doc_text,
+            mode="standard",
+            custom_instructions="Kiểm tra xem các tên riêng của các Luật trong này đã đúng chưa, các quyết định đã đúng với quy định pháp luật hiện hành chưa",
+            provider=LLMProvider.MOCK,
+        )
+
+        assert res.success is True
+        assert res.result is not None
+        assert any(e.type == ErrorType.LEGAL for e in res.result.errors)
+
+    def test_sanitize_legal_error_preserves_reference_and_source(self):
+        from agents.agent_0_proofreader.service import ProofreaderService
+        from agents.agent_0_proofreader.schemas import ErrorType
+
+        raw_item = {
+            "type": "pháp lý",
+            "original": "Luật Đấu thầu 2013",
+            "suggested": "Luật Đấu thầu 2023",
+            "explanation": "Đã hết hiệu lực từ 01/01/2024",
+            "severity": "high",
+            "reference": "Luật số 22/2023/QH15",
+            "source_link": "https://thuvienphapluat.vn",
+        }
+
+        err = ProofreaderService._sanitize_error(raw_item)
+        assert err.type == ErrorType.LEGAL
+        assert err.reference == "Luật số 22/2023/QH15"
+        assert err.source_link == "https://thuvienphapluat.vn"

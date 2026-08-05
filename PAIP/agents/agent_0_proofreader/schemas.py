@@ -19,6 +19,7 @@ class ErrorType(str, Enum):
     GRAMMAR = "grammar"
     WORD_CHOICE = "word_choice"
     PUNCTUATION = "punctuation"
+    LEGAL = "legal"
 
 
 class Severity(str, Enum):
@@ -30,14 +31,14 @@ class Severity(str, Enum):
 # ── Request ───────────────────────────────────────────────
 
 class ProofreadRequest(AIRequest):
-    """Request để kiểm tra chính tả."""
+    """Request để kiểm tra chính tả & pháp lý."""
     document_text: str = Field(
         default="",
         description="Nội dung văn bản cần kiểm tra",
     )
     mode: str = Field(
         default="standard",
-        description="Chế độ kiểm tra: standard (tiêu chuẩn) | formal (trang trọng) | strict (chặt chẽ)",
+        description="Chế độ kiểm tra: standard (tiêu chuẩn) | formal (trang trọng) | strict (chặt chẽ) | legal (thẩm định pháp lý & tra cứu luật)",
     )
     custom_instructions: str | None = Field(
         default=None,
@@ -56,12 +57,14 @@ class ExportDocxRequest(BaseModel):
 # ── Response ──────────────────────────────────────────────
 
 class ProofreadError(BaseModel):
-    """Một lỗi được phát hiện."""
+    """Một lỗi hoặc điểm cảnh báo được phát hiện."""
     type: ErrorType = Field(default=ErrorType.SPELLING, description="Loại lỗi")
-    original: str = Field(default="", description="Đoạn text gốc có lỗi")
-    suggested: str = Field(default="", description="Gợi ý sửa")
-    explanation: str = Field(default="", description="Giải thích")
+    original: str = Field(default="", description="Đoạn text gốc có lỗi hoặc viện dẫn sai")
+    suggested: str = Field(default="", description="Gợi ý sửa hoặc viện dẫn đúng")
+    explanation: str = Field(default="", description="Giải thích lý do")
     severity: Severity = Field(default=Severity.MEDIUM, description="Mức độ nghiêm trọng")
+    source_link: str | None = Field(default=None, description="Đường dẫn nguồn pháp lý / văn bản đối chiếu (nếu có)")
+    reference: str | None = Field(default=None, description="Tên số hiệu văn bản pháp lý trích dẫn (nếu có)")
 
 
 class ProofreadResult(BaseModel):

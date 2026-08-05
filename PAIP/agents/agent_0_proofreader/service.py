@@ -73,6 +73,11 @@ class ProofreaderService:
             custom_instructions=custom_instructions,
         )
 
+        # Detect if real-time legal grounding / search is needed
+        needs_search = mode in ("legal", "strict_legal") or any(
+            kw in (custom_instructions or "").lower() for kw in ("luật", "nghị định", "quyết định", "pháp lý", "văn bản quy phạm")
+        )
+
         # Call LLM
         try:
             llm_result = await llm_service.generate(
@@ -82,6 +87,7 @@ class ProofreaderService:
                 model=model,
                 temperature=0.2,  # Low creativity for high consistency
                 max_tokens=8192,
+                enable_search=needs_search,
             )
         except Exception as e:
             logger.error(f"Proofread LLM generation error: {e}")
@@ -229,7 +235,9 @@ class ProofreaderService:
     def _sanitize_error(item: dict) -> ProofreadError:
         """Chuẩn hóa thông tin lỗi để tránh crash khi LLM trả về type/severity bất thường."""
         raw_type = str(item.get("type", "spelling")).lower().strip()
-        if "gram" in raw_type or "ngữ pháp" in raw_type:
+        if "legal" in raw_type or "luật" in raw_type or "pháp lý" in raw_type or "quy định" in raw_type:
+            err_type = ErrorType.LEGAL
+        elif "gram" in raw_type or "ngữ pháp" in raw_type:
             err_type = ErrorType.GRAMMAR
         elif "punct" in raw_type or "dấu" in raw_type:
             err_type = ErrorType.PUNCTUATION
@@ -252,6 +260,8 @@ class ProofreaderService:
             suggested=str(item.get("suggested", item.get("suggestion", ""))),
             explanation=str(item.get("explanation", "")),
             severity=severity,
+            source_link=str(item["source_link"]).strip() if item.get("source_link") else None,
+            reference=str(item["reference"]).strip() if item.get("reference") else None,
         )
 
 

@@ -1,18 +1,21 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PAIP — Petrovietnam AI Platform | Trợ Lý Rà Soát & Biên Tập Văn Bản</title>
-  <meta name="description" content="Nền tảng Trí tuệ nhân tạo chuyên sâu kiểm tra chính tả, ngữ pháp, văn phong hành chính và xuất file Word chuẩn định dạng doanh nghiệp.">
-  
+  <title>PAIP — PTSC Quảng Ngãi AI Platform</title>
+  <meta name="description"
+    content="Nền tảng Trí tuệ nhân tạo chuyên sâu kiểm tra chính tả, ngữ pháp, văn phong hành chính và xuất file Word chuẩn định dạng doanh nghiệp.">
+
   <!-- Google Fonts: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  
+
   <link rel="stylesheet" href="/static/styles.css">
 </head>
+
 <body>
 
   <!-- TOP APP BAR -->
@@ -24,7 +27,7 @@
         <div class="brand-name">
           PAIP <span class="brand-tag">Enterprise AI</span>
         </div>
-        <div class="tagline">Petrovietnam AI Platform • R&D Lab</div>
+        <div class="tagline">PTSC Quảng Ngãi AI Platform • R&D Lab</div>
       </div>
     </div>
 
@@ -69,6 +72,7 @@
             <option value="standard">🟢 Tiêu Chuẩn (Chính tả & Dấu câu)</option>
             <option value="formal">🏛️ Văn Bản Hành Chính (Nghị định 30)</option>
             <option value="strict">⚖️ Hợp Đồng & Pháp Lý (Chặt chẽ)</option>
+            <option value="legal">🔍 Thẩm Định Pháp Lý & Tra Cứu Luật (Real-time Search)</option>
           </select>
         </div>
       </div>
@@ -77,9 +81,21 @@
         <label for="modelSelector">Mô hình AI</label>
         <div class="select-wrapper">
           <select id="modelSelector">
-            <option value="gemini">Google Gemini 2.5 Flash ⚡</option>
-            <option value="openai">OpenAI GPT-4o Mini</option>
-            <option value="mock">Chế độ Thử Nghiệm (Mock)</option>
+            <optgroup label="Google Gemini">
+              <option value="gemini:gemini-2.5-pro">👑 Gemini 2.5 Pro (Thẩm định sâu & Pháp lý)</option>
+              <option value="gemini:gemini-2.5-flash" selected>⚡ Gemini 2.5 Flash (Siêu tốc độ)</option>
+              <option value="gemini:gemini-2.0-flash">⚡ Gemini 2.0 Flash</option>
+            </optgroup>
+            <optgroup label="OpenAI">
+              <option value="openai:gpt-4o">🌟 OpenAI GPT-4o</option>
+              <option value="openai:gpt-4o-mini">🚀 OpenAI GPT-4o Mini</option>
+            </optgroup>
+            <optgroup label="Anthropic Claude">
+              <option value="claude:claude-3-5-sonnet-20241022">🧠 Claude 3.5 Sonnet</option>
+            </optgroup>
+            <optgroup label="Kiểm Thử">
+              <option value="mock:mock">🛠️ Chế độ Mock Test (Offline)</option>
+            </optgroup>
           </select>
         </div>
       </div>
@@ -91,11 +107,8 @@
         <label for="customInstructionsInput">Ghi chú / Chỉ dẫn riêng cho AI (Tùy chọn)</label>
         <div class="input-with-icon">
           <span class="input-icon">💬</span>
-          <input 
-            type="text" 
-            id="customInstructionsInput" 
-            placeholder="Ví dụ: Giữ nguyên mã thiết bị 'Dell XPS', kiểm tra kỹ số tiền bằng chữ, văn phong chuẩn PTSC..."
-          >
+          <input type="text" id="customInstructionsInput"
+            placeholder="Ví dụ: Giữ nguyên mã thiết bị 'Dell XPS', kiểm tra kỹ số tiền bằng chữ, văn phong chuẩn PTSC...">
         </div>
       </div>
     </div>
@@ -127,6 +140,7 @@
           <!-- Input Mode Tabs -->
           <div class="input-tabs">
             <button class="input-tab-btn active" id="tabTextBtn">✍️ Soạn Thảo</button>
+            <button class="input-tab-btn" id="tabHighlightBtn" style="display: none;">🔍 Bản Rà Soát (<span id="highlightCount">0</span>)</button>
             <button class="input-tab-btn" id="tabFileBtn">📁 Tải File Lên</button>
           </div>
         </div>
@@ -135,24 +149,46 @@
       <div class="editor-wrapper">
         <!-- Direct Text Editor -->
         <div class="text-editor-container" id="textModeContainer">
-          <textarea 
-            id="documentText" 
-            placeholder="Dán hoặc nhập nội dung công văn, tờ trình, hợp đồng cần rà soát vào đây...&#10;&#10;Hoặc chuyển sang tab 'Tải File Lên' để upload trực tiếp file Word (.docx), PDF (.pdf)."
-          ></textarea>
+          <textarea id="documentText"
+            placeholder="Dán hoặc nhập nội dung công văn, tờ trình, hợp đồng cần rà soát vào đây...&#10;&#10;Hoặc chuyển sang tab 'Tải File Lên' để upload trực tiếp file Word (.docx), PDF (.pdf)."></textarea>
+          
+          <!-- Interactive Visualizer with In-text Highlighting -->
+          <div class="interactive-viewer" id="interactiveViewer" style="display: none;"></div>
+
+          <!-- Floating Quick-Fix Tooltip -->
+          <div class="quick-fix-tooltip" id="quickFixTooltip" style="display: none;">
+            <div class="tooltip-header">
+              <span id="tooltipBadge" class="error-badge"></span>
+              <span id="tooltipTypeLabel" class="tooltip-type-label"></span>
+            </div>
+            <div class="tooltip-diff">
+              <span id="tooltipOriginal" class="diff-original"></span>
+              <span class="diff-arrow">➔</span>
+              <span id="tooltipSuggested" class="diff-suggested"></span>
+            </div>
+            <div id="tooltipExplanation" class="tooltip-explanation"></div>
+            <div id="tooltipLegalRef" class="tooltip-legal-ref" style="display: none;"></div>
+            <div class="tooltip-actions">
+              <button id="btnTooltipApply" class="btn-tooltip-apply">⚡ Áp Dụng Nhanh</button>
+              <button id="btnTooltipFocus" class="btn-tooltip-focus">Chi tiết ➔</button>
+            </div>
+          </div>
         </div>
 
         <!-- File Upload Zone -->
         <div class="file-upload-zone" id="fileModeContainer">
           <div class="upload-icon-box">📂</div>
           <div class="upload-title">Kéo thả file tài liệu vào đây hoặc bấm để chọn</div>
-          <div class="upload-subtitle">Hỗ trợ định dạng Word (.docx), PDF (.pdf), Text (.txt, .md). Tự động bóc tách nội dung và làm sạch biểu mẫu.</div>
+          <div class="upload-subtitle">Hỗ trợ định dạng Word (.docx), PDF (.pdf), Text (.txt, .md). Tự động bóc tách nội
+            dung và làm sạch biểu mẫu.</div>
           <input type="file" id="fileInput" accept=".docx,.pdf,.txt,.md" style="display: none;">
-          
+
           <div class="file-selected-card" id="fileSelectedCard">
             <div style="display: flex; align-items: center; gap: 12px;">
               <span style="font-size: 1.5rem;">📄</span>
               <div style="text-align: left;">
-                <div id="selectedFileName" style="font-weight: 600; font-size: 0.9rem; color: #f3f4f6;">hop_dong.docx</div>
+                <div id="selectedFileName" style="font-weight: 600; font-size: 0.9rem; color: #f3f4f6;">hop_dong.docx
+                </div>
                 <div id="selectedFileSize" style="font-size: 0.78rem; color: var(--text-muted);">245 KB</div>
               </div>
             </div>
@@ -175,14 +211,15 @@
             <button class="btn-secondary" id="btnClearText" title="Xóa trắng khung soạn thảo">
               🗑️ Xóa
             </button>
-            
+
             <div class="divider-vertical"></div>
 
             <!-- Export Buttons -->
             <button class="btn-secondary" id="btnCopyText" title="Sao chép nội dung văn bản hiện tại">
               📋 Sao Chép
             </button>
-            <button class="btn-export-docx" id="btnExportDocx" title="Tải văn bản hiện tại về máy dưới dạng file Word (.docx) chuẩn định dạng">
+            <button class="btn-export-docx" id="btnExportDocx"
+              title="Tải văn bản hiện tại về máy dưới dạng file Word (.docx) chuẩn định dạng">
               <span>📥</span>
               <span>Tải File Word (.docx)</span>
             </button>
@@ -197,21 +234,12 @@
       <div class="score-banner">
         <div class="score-circle-box">
           <svg viewBox="0 0 36 36" style="width: 68px; height: 68px; transform: rotate(-90deg);">
-            <path
-              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-              fill="none"
-              stroke="rgba(255, 255, 255, 0.08)"
-              stroke-width="3.5"
-            />
-            <path
-              id="scoreProgressPath"
-              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-              fill="none"
-              stroke="#10b981"
-              stroke-width="3.5"
-              stroke-dasharray="100, 100"
-              style="transition: stroke-dasharray 0.8s ease, stroke 0.4s ease;"
-            />
+            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none"
+              stroke="rgba(255, 255, 255, 0.08)" stroke-width="3.5" />
+            <path id="scoreProgressPath"
+              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none"
+              stroke="#10b981" stroke-width="3.5" stroke-dasharray="100, 100"
+              style="transition: stroke-dasharray 0.8s ease, stroke 0.4s ease;" />
           </svg>
           <div class="score-number" id="scoreValue">--</div>
         </div>
@@ -219,7 +247,8 @@
         <div class="score-details">
           <h3 id="scoreTitle">Sẵn Sàng Phân Tích</h3>
           <div class="score-summary-text" id="scoreSummary">
-            Nhập văn bản hoặc tải file lên, sau đó bấm "Bắt Đầu Rà Soát" để AI phát hiện lỗi chính tả, thể thức và ngữ pháp.
+            Nhập văn bản hoặc tải file lên, sau đó bấm "Bắt Đầu Rà Soát" để AI phát hiện lỗi chính tả, thể thức và ngữ
+            pháp.
           </div>
         </div>
       </div>
@@ -231,6 +260,7 @@
         <button class="filter-pill" data-filter="grammar" id="filterGrammar">Ngữ pháp (0)</button>
         <button class="filter-pill" data-filter="word_choice" id="filterWordChoice">Dùng từ (0)</button>
         <button class="filter-pill" data-filter="punctuation" id="filterPunct">Dấu câu (0)</button>
+        <button class="filter-pill" data-filter="legal" id="filterLegal">⚖️ Pháp lý (0)</button>
       </div>
 
       <!-- Error Cards Scroll Area -->
@@ -239,7 +269,8 @@
         <div class="clean-state-box" id="initialStateBox">
           <div class="clean-icon">📋</div>
           <div style="font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">Chưa có kết quả phân tích</div>
-          <div style="font-size: 0.82rem; color: var(--text-muted);">Hãy chọn văn bản hoặc tải file lên và bấm nút "Bắt Đầu Rà Soát".</div>
+          <div style="font-size: 0.82rem; color: var(--text-muted);">Hãy chọn văn bản hoặc tải file lên và bấm nút "Bắt
+            Đầu Rà Soát".</div>
         </div>
       </div>
 
@@ -264,4 +295,5 @@
 
   <script src="/static/app.js"></script>
 </body>
+
 </html>
