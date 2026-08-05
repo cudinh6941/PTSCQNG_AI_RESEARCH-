@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PAIP — Petrovietnam AI Platform | Trợ Lý Rà Soát & Biên Tập Văn Bản</title>
+  <meta name="description" content="Nền tảng Trí tuệ nhân tạo chuyên sâu kiểm tra chính tả, ngữ pháp, văn phong hành chính và xuất file Word chuẩn định dạng doanh nghiệp.">
+  
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+
+  <!-- TOP APP BAR -->
+  <header class="app-header">
+    <!-- Brand / Logo -->
+    <div class="brand-container">
+      <div class="logo-badge">P</div>
+      <div class="brand-titles">
+        <div class="brand-name">
+          PAIP <span class="brand-tag">Enterprise AI</span>
+        </div>
+        <div class="tagline">Petrovietnam AI Platform • R&D Lab</div>
+      </div>
+    </div>
+
+    <!-- Agent Switcher Navigation -->
+    <nav class="agent-nav">
+      <button class="agent-nav-item active" id="navAgent0" title="Agent 0: Trợ lý rà soát lỗi văn bản">
+        <span class="agent-icon">✍️</span>
+        <span class="agent-name">Agent 0: Rà Soát Văn Bản</span>
+      </button>
+      <button class="agent-nav-item disabled" title="Agent 1: Đang phát triển">
+        <span class="agent-icon">🎙️</span>
+        <span class="agent-name">Agent 1: Tóm Tắt Họp</span>
+      </button>
+      <button class="agent-nav-item disabled" title="Agent 2: Đang phát triển">
+        <span class="agent-icon">📑</span>
+        <span class="agent-name">Agent 2: Trợ Lý Quy Trình</span>
+      </button>
+    </nav>
+
+    <!-- Header Telemetry & Status -->
+    <div class="header-telemetry">
+      <div class="telemetry-item" id="tokenUsageBadge" title="Số token đã sử dụng trong phiên">
+        <span class="telemetry-icon">🪙</span>
+        <span id="sessionTokens">0 Tokens</span>
+      </div>
+
+      <div class="status-pill" id="systemStatus">
+        <div class="status-dot"></div>
+        <span id="statusLabel">Hệ thống sẵn sàng</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- WORKSPACE CONTROL TOOLBAR -->
+  <div class="workspace-toolbar">
+    <!-- Group 1: Configuration Selectors -->
+    <div class="toolbar-group">
+      <div class="control-item">
+        <label for="modeSelector">Chế độ rà soát</label>
+        <div class="select-wrapper">
+          <select id="modeSelector">
+            <option value="standard">🟢 Tiêu Chuẩn (Chính tả & Dấu câu)</option>
+            <option value="formal">🏛️ Văn Bản Hành Chính (Nghị định 30)</option>
+            <option value="strict">⚖️ Hợp Đồng & Pháp Lý (Chặt chẽ)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="control-item">
+        <label for="modelSelector">Mô hình AI</label>
+        <div class="select-wrapper">
+          <select id="modelSelector">
+            <option value="gemini">Google Gemini 2.5 Flash ⚡</option>
+            <option value="openai">OpenAI GPT-4o Mini</option>
+            <option value="mock">Chế độ Thử Nghiệm (Mock)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Group 2: Custom Instructions Field -->
+    <div class="toolbar-group custom-prompt-group">
+      <div class="control-item" style="width: 100%;">
+        <label for="customInstructionsInput">Ghi chú / Chỉ dẫn riêng cho AI (Tùy chọn)</label>
+        <div class="input-with-icon">
+          <span class="input-icon">💬</span>
+          <input 
+            type="text" 
+            id="customInstructionsInput" 
+            placeholder="Ví dụ: Giữ nguyên mã thiết bị 'Dell XPS', kiểm tra kỹ số tiền bằng chữ, văn phong chuẩn PTSC..."
+          >
+        </div>
+      </div>
+    </div>
+
+    <!-- Group 3: Primary Action Button -->
+    <div class="toolbar-group action-buttons-group">
+      <button class="btn-primary" id="btnAnalyze">
+        <span id="btnIcon">⚡</span>
+        <span id="btnText">Bắt Đầu Rà Soát</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN SPLIT-SCREEN WORKSPACE -->
+  <main class="app-layout">
+
+    <!-- LEFT PANEL: Document Editor & File Hub -->
+    <section class="panel editor-panel">
+      <div class="panel-header">
+        <div class="panel-title-group">
+          <span class="panel-header-icon">📄</span>
+          <div>
+            <div class="panel-title">Nội Dung Văn Bản</div>
+            <div class="panel-subtitle">Soạn thảo trực tiếp, upload file Word (.docx) hoặc dán văn bản</div>
+          </div>
+        </div>
+
+        <div class="panel-header-right">
+          <!-- Input Mode Tabs -->
+          <div class="input-tabs">
+            <button class="input-tab-btn active" id="tabTextBtn">✍️ Soạn Thảo</button>
+            <button class="input-tab-btn" id="tabFileBtn">📁 Tải File Lên</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="editor-wrapper">
+        <!-- Direct Text Editor -->
+        <div class="text-editor-container" id="textModeContainer">
+          <textarea 
+            id="documentText" 
+            placeholder="Dán hoặc nhập nội dung công văn, tờ trình, hợp đồng cần rà soát vào đây...&#10;&#10;Hoặc chuyển sang tab 'Tải File Lên' để upload trực tiếp file Word (.docx), PDF (.pdf)."
+          ></textarea>
+        </div>
+
+        <!-- File Upload Zone -->
+        <div class="file-upload-zone" id="fileModeContainer">
+          <div class="upload-icon-box">📂</div>
+          <div class="upload-title">Kéo thả file tài liệu vào đây hoặc bấm để chọn</div>
+          <div class="upload-subtitle">Hỗ trợ định dạng Word (.docx), PDF (.pdf), Text (.txt, .md). Tự động bóc tách nội dung và làm sạch biểu mẫu.</div>
+          <input type="file" id="fileInput" accept=".docx,.pdf,.txt,.md" style="display: none;">
+          
+          <div class="file-selected-card" id="fileSelectedCard">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span style="font-size: 1.5rem;">📄</span>
+              <div style="text-align: left;">
+                <div id="selectedFileName" style="font-weight: 600; font-size: 0.9rem; color: #f3f4f6;">hop_dong.docx</div>
+                <div id="selectedFileSize" style="font-size: 0.78rem; color: var(--text-muted);">245 KB</div>
+              </div>
+            </div>
+            <button class="btn-secondary btn-danger-hover" id="btnRemoveFile">Xóa File</button>
+          </div>
+        </div>
+
+        <!-- Editor Toolbar & Export Actions -->
+        <div class="editor-footer">
+          <div class="editor-stats">
+            <span id="charCount">0 ký tự</span>
+            <span class="stat-divider">•</span>
+            <span id="wordCount">0 từ</span>
+          </div>
+
+          <div class="editor-actions">
+            <button class="btn-secondary" id="btnLoadSample" title="Nạp văn bản mẫu chứa lỗi thực tế">
+              📝 Mẫu Thử
+            </button>
+            <button class="btn-secondary" id="btnClearText" title="Xóa trắng khung soạn thảo">
+              🗑️ Xóa
+            </button>
+            
+            <div class="divider-vertical"></div>
+
+            <!-- Export Buttons -->
+            <button class="btn-secondary" id="btnCopyText" title="Sao chép nội dung văn bản hiện tại">
+              📋 Sao Chép
+            </button>
+            <button class="btn-export-docx" id="btnExportDocx" title="Tải văn bản hiện tại về máy dưới dạng file Word (.docx) chuẩn định dạng">
+              <span>📥</span>
+              <span>Tải File Word (.docx)</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT PANEL: AI Inspector & Error Corrections -->
+    <section class="panel inspector-panel">
+      <!-- Score & Summary Banner -->
+      <div class="score-banner">
+        <div class="score-circle-box">
+          <svg viewBox="0 0 36 36" style="width: 68px; height: 68px; transform: rotate(-90deg);">
+            <path
+              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+              fill="none"
+              stroke="rgba(255, 255, 255, 0.08)"
+              stroke-width="3.5"
+            />
+            <path
+              id="scoreProgressPath"
+              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+              fill="none"
+              stroke="#10b981"
+              stroke-width="3.5"
+              stroke-dasharray="100, 100"
+              style="transition: stroke-dasharray 0.8s ease, stroke 0.4s ease;"
+            />
+          </svg>
+          <div class="score-number" id="scoreValue">--</div>
+        </div>
+
+        <div class="score-details">
+          <h3 id="scoreTitle">Sẵn Sàng Phân Tích</h3>
+          <div class="score-summary-text" id="scoreSummary">
+            Nhập văn bản hoặc tải file lên, sau đó bấm "Bắt Đầu Rà Soát" để AI phát hiện lỗi chính tả, thể thức và ngữ pháp.
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter Tabs -->
+      <div class="filter-tabs">
+        <button class="filter-pill active" data-filter="all" id="filterAll">Tất cả (0)</button>
+        <button class="filter-pill" data-filter="spelling" id="filterSpelling">Chính tả (0)</button>
+        <button class="filter-pill" data-filter="grammar" id="filterGrammar">Ngữ pháp (0)</button>
+        <button class="filter-pill" data-filter="word_choice" id="filterWordChoice">Dùng từ (0)</button>
+        <button class="filter-pill" data-filter="punctuation" id="filterPunct">Dấu câu (0)</button>
+      </div>
+
+      <!-- Error Cards Scroll Area -->
+      <div class="error-cards-scroll" id="errorListContainer">
+        <!-- Initial Empty State -->
+        <div class="clean-state-box" id="initialStateBox">
+          <div class="clean-icon">📋</div>
+          <div style="font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">Chưa có kết quả phân tích</div>
+          <div style="font-size: 0.82rem; color: var(--text-muted);">Hãy chọn văn bản hoặc tải file lên và bấm nút "Bắt Đầu Rà Soát".</div>
+        </div>
+      </div>
+
+      <!-- Inspector Footer -->
+      <div class="inspector-footer">
+        <div class="latency-stats" id="latencyStats">
+          Tốc độ: -- ms • Tokens: --
+        </div>
+
+        <div class="inspector-actions">
+          <button class="btn-primary-action" id="btnApplyAll" title="Áp dụng tất cả gợi ý sửa đổi vào khung soạn thảo">
+            🚀 Sửa Tất Cả Lỗi
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

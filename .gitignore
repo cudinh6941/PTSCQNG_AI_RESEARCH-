@@ -1,0 +1,43 @@
+# Environment & Secrets (CRITICAL)
+.env
+*.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.secret
+
+# Python Virtual Environments & Bytecode
+.venv/
+venv/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+
+# Test & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS Cache
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Obsidian Cache & Workspace (Local)
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json

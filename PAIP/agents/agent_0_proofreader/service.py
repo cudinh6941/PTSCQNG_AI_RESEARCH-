@@ -1,0 +1,260 @@
+"""
+Agent 0 — Service (Business Logic).
+
+Flow: Nhận text/file → Gọi LLM → Parse kết quả → Trả về structured response.
+"""
+
+import json
+import re
+import time
+
+from core.common.logger import logger
+from core.common.schemas import LLMProvider
+from core.document import document_reader
+from core.llm import llm_service
+
+from .prompts import SYSTEM_PROMPT, build_user_prompt
+from .schemas import ErrorType, ProofreadError, ProofreadResponse, ProofreadResult, Severity
+
+
+class ProofreaderService:
+    """Document Proofreader — kiểm tra chính tả, ngữ pháp tiếng Việt."""
+
+    MAX_TEXT_LENGTH = 50_000  # ~50K chars per request
+
+    async def proofread_text(
+        self,
+        text: str,
+        mode: str = "standard",
+        custom_instructions: str | None = None,
+        provider: LLMProvider | str | None = None,
+        model: str | None = None,
+        user_id: str | None = None,
+        department: str | None = None,
+    ) -> ProofreadResponse:
+        """
+        Kiểm tra chính tả cho đoạn text.
+
+        Args:
+            text: Nội dung cần kiểm tra
+            mode: Chế độ kiểm tra (standard, formal, strict)
+            custom_instructions: Ghi chú thêm từ người dùng
+            provider: LLM provider (optional)
+            model: Model name (optional)
+            user_id: ID người dùng (optional)
+            department: Phòng ban (optional)
+
+        Returns:
+            ProofreadResponse với danh sách lỗi
+        """
+        start_time = time.time()
+
+        # Validate
+        if not text or not text.strip():
+            return ProofreadResponse(
+                success=False,
+                message="Văn bản trống, không có gì để kiểm tra.",
+                processing_time_ms=(time.time() - start_time) * 1000,
+            )
+
+        if len(text) > self.MAX_TEXT_LENGTH:
+            return ProofreadResponse(
+                success=False,
+                message=f"Văn bản quá dài ({len(text)} ký tự). Tối đa {self.MAX_TEXT_LENGTH:,} ký tự.",
+                processing_time_ms=(time.time() - start_time) * 1000,
+            )
+
+        logger.info(f"Proofreading: {len(text)} chars, mode={mode}, user={user_id}, dept={department}")
+
+        # Build prompt dynamically based on mode and custom instructions
+        user_prompt = build_user_prompt(
+            document_text=text,
+            mode=mode,
+            custom_instructions=custom_instructions,
+        )
+
+        # Call LLM
+        try:
+            llm_result = await llm_service.generate(
+                prompt=user_prompt,
+                system_prompt=SYSTEM_PROMPT,
+                provider=provider,
+                model=model,
+                temperature=0.2,  # Low creativity for high consistency
+                max_tokens=8192,
+            )
+        except Exception as e:
+            logger.error(f"Proofread LLM generation error: {e}")
+            return ProofreadResponse(
+                success=False,
+                message=f"Lỗi khi xử lý qua AI: {e}",
+                processing_time_ms=(time.time() - start_time) * 1000,
+            )
+
+        # Parse response
+        result = self._parse_llm_response(llm_result.content)
+
+        processing_time = (time.time() - start_time) * 1000
+
+        return ProofreadResponse(
+            success=True,
+            message=f"Đã kiểm tra xong. Tìm thấy {result.total_errors} lỗi.",
+            result=result,
+            extracted_text=text,
+            processing_time_ms=processing_time,
+            model_used=llm_result.model,
+            tokens_used=llm_result.total_tokens,
+            estimated_cost_usd=llm_result.estimated_cost_usd,
+        )
+
+    async def proofread_file(
+        self,
+        file_content: bytes,
+        filename: str,
+        mode: str = "standard",
+        custom_instructions: str | None = None,
+        provider: LLMProvider | str | None = None,
+        model: str | None = None,
+        user_id: str | None = None,
+        department: str | None = None,
+    ) -> ProofreadResponse:
+        """
+        Kiểm tra chính tả cho file (Word/PDF/Text).
+
+        Args:
+            file_content: File content as bytes
+            filename: Original filename
+            mode: Chế độ kiểm tra (standard, formal, strict)
+            custom_instructions: Ghi chú thêm từ người dùng
+
+        Returns:
+            ProofreadResponse
+        """
+        try:
+            raw_text = document_reader.read_bytes(file_content, filename)
+        except ValueError as e:
+            return ProofreadResponse(success=False, message=str(e))
+        except Exception as e:
+            logger.error(f"Error reading file {filename}: {e}")
+            return ProofreadResponse(success=False, message=f"Không đọc được file: {e}")
+
+        # Clean repeated header/footer noise commonly found in PDF/DOCX (e.g. "QN-COM-PR01-FM09\nNHL: 22/12/2025")
+        cleaned_text = self._clean_document_text(raw_text)
+
+        response = await self.proofread_text(
+            text=cleaned_text,
+            mode=mode,
+            custom_instructions=custom_instructions,
+            provider=provider,
+            model=model,
+            user_id=user_id,
+            department=department,
+        )
+        response.extracted_text = cleaned_text
+        return response
+
+    def _clean_document_text(self, text: str) -> str:
+        """Làm sạch các dòng header/footer lặp lại vô nghĩa giữa các trang."""
+        # Clean PTSC form headers if repeated
+        cleaned = re.sub(r'QN-[A-Z0-9-]+\s*\n\s*NHL:\s*\d{2}/\d{2}/\d{4}\s*\n?', '', text)
+        # Normalize excessive newlines
+        cleaned = re.sub(r'\n{3,}', '\n\n', cleaned)
+        return cleaned.strip()
+
+    def _parse_llm_response(self, content: str) -> ProofreadResult:
+        """Parse JSON response từ LLM với regex extraction và fallback an toàn."""
+        try:
+            raw_json = self._extract_json_block(content)
+            data = json.loads(raw_json)
+
+            errors: list[ProofreadError] = []
+            for item in data.get("errors", []):
+                if isinstance(item, dict):
+                    errors.append(self._sanitize_error(item))
+
+            score = data.get("score", 0.0)
+            try:
+                score = float(score)
+            except (ValueError, TypeError):
+                score = 0.0
+
+            return ProofreadResult(
+                total_errors=data.get("total_errors", len(errors)),
+                errors=errors,
+                summary=str(data.get("summary", "")),
+                score=score,
+            )
+
+        except Exception as e:
+            logger.warning(f"Direct JSON parse failed: {e}. Attempting chunked object extraction...")
+            # Fallback: Extract individual error dicts via regex
+            fallback_errors: list[ProofreadError] = []
+            for obj_match in re.finditer(r'\{[^{}]*"original"\s*:\s*"[^"]+"[^{}]*\}', content):
+                try:
+                    obj_dict = json.loads(obj_match.group(0))
+                    fallback_errors.append(self._sanitize_error(obj_dict))
+                except Exception:
+                    pass
+
+            if fallback_errors:
+                return ProofreadResult(
+                    total_errors=len(fallback_errors),
+                    errors=fallback_errors,
+                    summary="Đã phân tích và trích xuất danh sách lỗi thành công.",
+                    score=round(max(10.0 - (len(fallback_errors) * 0.5), 1.0), 1),
+                )
+
+            return ProofreadResult(
+                total_errors=0,
+                errors=[],
+                summary=f"Kết quả phân tích (raw):\n{content[:500]}",
+                score=0.0,
+            )
+
+    @staticmethod
+    def _extract_json_block(content: str) -> str:
+        """Trích xuất khối JSON từ output của LLM."""
+        text = content.strip()
+        # Case 1: fenced code block ```json ... ```
+        match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", text)
+        if match:
+            return match.group(1).strip()
+        # Case 2: raw JSON object {...}
+        match = re.search(r"(\{[\s\S]*\})", text)
+        if match:
+            return match.group(1).strip()
+        return text
+
+    @staticmethod
+    def _sanitize_error(item: dict) -> ProofreadError:
+        """Chuẩn hóa thông tin lỗi để tránh crash khi LLM trả về type/severity bất thường."""
+        raw_type = str(item.get("type", "spelling")).lower().strip()
+        if "gram" in raw_type or "ngữ pháp" in raw_type:
+            err_type = ErrorType.GRAMMAR
+        elif "punct" in raw_type or "dấu" in raw_type:
+            err_type = ErrorType.PUNCTUATION
+        elif "word" in raw_type or "từ" in raw_type:
+            err_type = ErrorType.WORD_CHOICE
+        else:
+            err_type = ErrorType.SPELLING
+
+        raw_sev = str(item.get("severity", "medium")).lower().strip()
+        if raw_sev in ("high", "cao", "critical"):
+            severity = Severity.HIGH
+        elif raw_sev in ("low", "thấp", "minor"):
+            severity = Severity.LOW
+        else:
+            severity = Severity.MEDIUM
+
+        return ProofreadError(
+            type=err_type,
+            original=str(item.get("original", "")),
+            suggested=str(item.get("suggested", item.get("suggestion", ""))),
+            explanation=str(item.get("explanation", "")),
+            severity=severity,
+        )
+
+
+# Singleton instance
+proofreader_service = ProofreaderService()
+

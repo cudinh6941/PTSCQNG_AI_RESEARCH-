@@ -1,0 +1,17 @@
+{
+  "venvPath": "PAIP",
+  "venv": ".venv",
+  "extraPaths": [
+    "PAIP",
+    "PAIP/.venv/Lib/site-packages"
+  ],
+  "executionEnvironments": [
+    {
+      "root": "PAIP",
+      "extraPaths": [
+        "PAIP",
+        "PAIP/.venv/Lib/site-packages"
+      ]
+    }
+  ]
+}
