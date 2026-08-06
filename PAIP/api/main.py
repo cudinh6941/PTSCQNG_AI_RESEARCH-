@@ -21,6 +21,8 @@ from core.common.schemas import HealthResponse
 
 # Import agent routers
 from agents.agent_0_proofreader.router import router as proofreader_router
+from api.rules_router import router as rules_router
+from core.rule_engine import rule_engine
 
 
 @asynccontextmanager
@@ -32,6 +34,10 @@ async def lifespan(app: FastAPI):
     logger.info(f"   Default LLM: {settings.default_llm_provider}")
     logger.info(f"   Vault: {settings.obsidian_vault_path}")
     logger.info("=" * 60)
+
+    # Khởi tạo Rule Engine (nạp từ điển & compile regex)
+    rule_engine.load()
+
     yield
     logger.info(f"👋 {settings.app_name} shutting down...")
 
@@ -81,6 +87,7 @@ async def root():
 # ── Register Agent Routers ────────────────────────────────
 
 app.include_router(proofreader_router)
+app.include_router(rules_router)
 
 # Future agents:
 # from agents.agent_1_meeting.router import router as meeting_router

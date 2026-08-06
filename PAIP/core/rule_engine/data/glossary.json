@@ -1,0 +1,411 @@
+{
+  "Blasting & Painting": {
+    "term": "Blasting & Painting",
+    "full_name_en": "Blasting and Painting",
+    "full_name_vi": "Phun cát và Sơn phủ",
+    "domain": "Mechanical",
+    "standard_case": "Blasting & Painting",
+    "incorrect_variants": [
+      "blasting & painting",
+      "B&P",
+      "b&p"
+    ],
+    "synonyms": [
+      "phun sơn",
+      "công tác sơn phủ"
+    ],
+    "do_not_translate": true,
+    "description": "Công tác xử lý bề mặt kim loại bằng phun cát và sơn bảo vệ."
+  },
+  "Bollard Pull": {
+    "term": "Bollard Pull",
+    "full_name_en": "Bollard Pull",
+    "full_name_vi": "Lực kéo bollard",
+    "domain": "Marine",
+    "standard_case": "Bollard Pull",
+    "incorrect_variants": [
+      "bollard pull",
+      "bollardpull",
+      "Bolard Pull"
+    ],
+    "synonyms": [
+      "lực kéo tĩnh"
+    ],
+    "do_not_translate": true,
+    "description": "Lực kéo tĩnh đo khả năng của tàu kéo, tính bằng tấn."
+  },
+  "EPC": {
+    "term": "EPC",
+    "full_name_en": "Engineering, Procurement and Construction",
+    "full_name_vi": "Thiết kế, Mua sắm và Thi công",
+    "domain": "EPC",
+    "standard_case": "EPC",
+    "incorrect_variants": [
+      "epc",
+      "Epc",
+      "E.P.C"
+    ],
+    "synonyms": [],
+    "do_not_translate": true,
+    "description": "Hình thức hợp đồng trọn gói Thiết kế – Mua sắm – Thi công."
+  },
+  "EPCIC": {
+    "term": "EPCIC",
+    "full_name_en": "Engineering, Procurement, Construction, Installation and Commissioning",
+    "full_name_vi": "Thiết kế, Mua sắm, Thi công, Lắp đặt và Chạy thử",
+    "domain": "EPC",
+    "standard_case": "EPCIC",
+    "incorrect_variants": [
+      "epcic",
+      "Epcic",
+      "E.P.C.I.C"
+    ],
+    "synonyms": [],
+    "do_not_translate": true,
+    "description": "Hình thức hợp đồng trọn gói bao gồm cả Lắp đặt & Chạy thử."
+  },
+  "FPSO": {
+    "term": "FPSO",
+    "full_name_en": "Floating Production Storage and Offloading",
+    "full_name_vi": "Kho nổi chứa, xử lý và xuất dầu thô",
+    "domain": "Offshore",
+    "standard_case": "FPSO",
+    "incorrect_variants": [
+      "fpso",
+      "Fpso",
+      "F.P.S.O",
+      "F.P.S.O."
+    ],
+    "synonyms": [
+      "kho nổi FPSO",
+      "tàu FPSO"
+    ],
+    "do_not_translate": true,
+    "description": "Tàu/kho nổi chuyên dụng trong khai thác dầu khí ngoài khơi."
+  },
+  "FSO": {
+    "term": "FSO",
+    "full_name_en": "Floating Storage and Offloading",
+    "full_name_vi": "Kho nổi chứa và xuất dầu thô",
+    "domain": "Offshore",
+    "standard_case": "FSO",
+    "incorrect_variants": [
+      "fso",
+      "Fso",
+      "F.S.O"
+    ],
+    "synonyms": [
+      "kho nổi FSO"
+    ],
+    "do_not_translate": true,
+    "description": "Kho nổi chứa và xuất dầu (không có chức năng xử lý như FPSO)."
+  },
+  "HAZOP": {
+    "term": "HAZOP",
+    "full_name_en": "Hazard and Operability Study",
+    "full_name_vi": "Nghiên cứu nguy hiểm và khả năng vận hành",
+    "domain": "HSEQ",
+    "standard_case": "HAZOP",
+    "incorrect_variants": [
+      "hazop",
+      "Hazop",
+      "H.A.Z.O.P"
+    ],
+    "synonyms": [
+      "đánh giá HAZOP"
+    ],
+    "do_not_translate": true,
+    "description": "Phương pháp phân tích rủi ro hệ thống trong thiết kế & vận hành công trình."
+  },
+  "HSE": {
+    "term": "HSE",
+    "full_name_en": "Health, Safety and Environment",
+    "full_name_vi": "An toàn, Sức khỏe và Môi trường",
+    "domain": "HSEQ",
+    "standard_case": "HSE",
+    "incorrect_variants": [
+      "hse",
+      "Hse",
+      "H.S.E"
+    ],
+    "synonyms": [
+      "an toàn lao động",
+      "ATVSLĐ"
+    ],
+    "do_not_translate": true,
+    "description": "Hệ thống quản lý An toàn – Sức khỏe – Môi trường."
+  },
+  "HSEQ": {
+    "term": "HSEQ",
+    "full_name_en": "Health, Safety, Environment and Quality",
+    "full_name_vi": "An toàn, Sức khỏe, Môi trường và Chất lượng",
+    "domain": "HSEQ",
+    "standard_case": "HSEQ",
+    "incorrect_variants": [
+      "hseq",
+      "Hseq",
+      "H.S.E.Q"
+    ],
+    "synonyms": [],
+    "do_not_translate": true,
+    "description": "Hệ thống quản lý tích hợp An toàn – Sức khỏe – Môi trường – Chất lượng."
+  },
+  "Jacket": {
+    "term": "Jacket",
+    "full_name_en": "Jacket Structure",
+    "full_name_vi": "Kết cấu chân đế giàn khoan",
+    "domain": "Offshore",
+    "standard_case": "Jacket",
+    "incorrect_variants": [],
+    "synonyms": [
+      "chân đế",
+      "kết cấu Jacket"
+    ],
+    "do_not_translate": true,
+    "description": "Kết cấu thép phần dưới nước của giàn khoan cố định ngoài khơi."
+  },
+  "Load-out": {
+    "term": "Load-out",
+    "full_name_en": "Load-out Operation",
+    "full_name_vi": "Hạ thủy / Vận chuyển lên sà lan",
+    "domain": "Offshore",
+    "standard_case": "Load-out",
+    "incorrect_variants": [
+      "loadout",
+      "Loadout",
+      "load out",
+      "Load Out"
+    ],
+    "synonyms": [
+      "hạ thủy",
+      "vận chuyển load-out"
+    ],
+    "do_not_translate": true,
+    "description": "Quy trình di chuyển kết cấu từ bãi chế tạo lên sà lan vận chuyển."
+  },
+  "MTO": {
+    "term": "MTO",
+    "full_name_en": "Material Take-Off",
+    "full_name_vi": "Bảng bóc tách vật tư",
+    "domain": "Engineering",
+    "standard_case": "MTO",
+    "incorrect_variants": [
+      "mto",
+      "Mto",
+      "M.T.O"
+    ],
+    "synonyms": [
+      "bóc tách vật tư",
+      "bảng MTO"
+    ],
+    "do_not_translate": true,
+    "description": "Bảng liệt kê chi tiết vật tư cần thiết cho dự án, bóc từ bản vẽ thiết kế."
+  },
+  "NDT": {
+    "term": "NDT",
+    "full_name_en": "Non-Destructive Testing",
+    "full_name_vi": "Kiểm tra không phá hủy",
+    "domain": "Mechanical",
+    "standard_case": "NDT",
+    "incorrect_variants": [
+      "ndt",
+      "Ndt",
+      "N.D.T"
+    ],
+    "synonyms": [
+      "kiểm tra NDT",
+      "thử nghiệm không phá hủy"
+    ],
+    "do_not_translate": true,
+    "description": "Phương pháp kiểm tra chất lượng mối hàn / vật liệu mà không gây hư hại."
+  },
+  "O&M": {
+    "term": "O&M",
+    "full_name_en": "Operation and Maintenance",
+    "full_name_vi": "Vận hành và Bảo dưỡng",
+    "domain": "Operations",
+    "standard_case": "O&M",
+    "incorrect_variants": [
+      "o&m",
+      "O&m",
+      "OandM",
+      "O & M"
+    ],
+    "synonyms": [
+      "vận hành bảo dưỡng"
+    ],
+    "do_not_translate": true,
+    "description": "Hoạt động vận hành và bảo dưỡng thiết bị / công trình."
+  },
+  "P&ID": {
+    "term": "P&ID",
+    "full_name_en": "Piping and Instrumentation Diagram",
+    "full_name_vi": "Sơ đồ đường ống và thiết bị đo lường",
+    "domain": "Engineering",
+    "standard_case": "P&ID",
+    "incorrect_variants": [
+      "p&id",
+      "PID",
+      "P&id",
+      "P and ID"
+    ],
+    "synonyms": [
+      "bản vẽ P&ID",
+      "sơ đồ P&ID"
+    ],
+    "do_not_translate": true,
+    "description": "Bản vẽ kỹ thuật thể hiện hệ thống đường ống và thiết bị đo lường điều khiển."
+  },
+  "P.ATCL": {
+    "term": "P.ATCL",
+    "full_name_en": "Safety & Quality Department",
+    "full_name_vi": "Phòng An toàn Chất lượng",
+    "domain": "HSEQ",
+    "standard_case": "P.ATCL",
+    "incorrect_variants": [
+      "P.AT-CL",
+      "PATCL",
+      "p.atcl",
+      "P.Atcl",
+      "Phòng ATCL"
+    ],
+    "synonyms": [
+      "Phòng An toàn Chất lượng"
+    ],
+    "do_not_translate": false,
+    "description": "Phòng An toàn Chất lượng của đơn vị."
+  },
+  "P.KHĐT": {
+    "term": "P.KHĐT",
+    "full_name_en": "Planning & Investment Department",
+    "full_name_vi": "Phòng Kế hoạch Đầu tư",
+    "domain": "Corporate",
+    "standard_case": "P.KHĐT",
+    "incorrect_variants": [
+      "P.KH-ĐT",
+      "PKHDT",
+      "p.khđt",
+      "P.Khđt"
+    ],
+    "synonyms": [
+      "Phòng Kế hoạch Đầu tư",
+      "Phòng KHĐT"
+    ],
+    "do_not_translate": false,
+    "description": "Phòng Kế hoạch Đầu tư của đơn vị."
+  },
+  "PTSC": {
+    "term": "PTSC",
+    "full_name_en": "Petrovietnam Technical Services Corporation",
+    "full_name_vi": "Tổng Công ty Cổ phần Dịch vụ Kỹ thuật Dầu khí Việt Nam",
+    "domain": "Corporate",
+    "standard_case": "PTSC",
+    "incorrect_variants": [
+      "ptsc",
+      "Ptsc",
+      "P.T.S.C"
+    ],
+    "synonyms": [],
+    "do_not_translate": true,
+    "description": "Tổng Công ty mẹ — thành viên Tập đoàn Dầu khí Việt Nam (Petrovietnam)."
+  },
+  "PTSC Quảng Ngãi": {
+    "term": "PTSC Quảng Ngãi",
+    "full_name_en": "",
+    "full_name_vi": "tên riêng công ty",
+    "domain": "General",
+    "standard_case": "PTSC Quảng Ngãi",
+    "incorrect_variants": [
+      "PTSCQNG",
+      "PTSC QNG",
+      "PTSCQN"
+    ],
+    "synonyms": [],
+    "do_not_translate": false,
+    "description": ""
+  },
+  "QA/QC": {
+    "term": "QA/QC",
+    "full_name_en": "Quality Assurance / Quality Control",
+    "full_name_vi": "Đảm bảo Chất lượng / Kiểm soát Chất lượng",
+    "domain": "HSEQ",
+    "standard_case": "QA/QC",
+    "incorrect_variants": [
+      "qaqc",
+      "QAQC",
+      "qa/qc",
+      "QA / QC"
+    ],
+    "synonyms": [
+      "kiểm soát chất lượng"
+    ],
+    "do_not_translate": true,
+    "description": "Hệ thống đảm bảo và kiểm soát chất lượng sản phẩm / dịch vụ."
+  },
+  "TGĐ": {
+    "term": "TGĐ",
+    "full_name_en": "General Director / CEO",
+    "full_name_vi": "Tổng Giám đốc",
+    "domain": "Corporate",
+    "standard_case": "TGĐ",
+    "incorrect_variants": [
+      "tgđ",
+      "Tgđ",
+      "tgd",
+      "TGD"
+    ],
+    "synonyms": [
+      "Tổng Giám đốc"
+    ],
+    "do_not_translate": false,
+    "description": "Chức danh Tổng Giám đốc doanh nghiệp."
+  },
+  "Topside": {
+    "term": "Topside",
+    "full_name_en": "Topside Structure",
+    "full_name_vi": "Kết cấu thượng tầng",
+    "domain": "Offshore",
+    "standard_case": "Topside",
+    "incorrect_variants": [
+      "Top-side",
+      "top side",
+      "top-side"
+    ],
+    "synonyms": [
+      "thượng tầng",
+      "Topsides"
+    ],
+    "do_not_translate": true,
+    "description": "Phần kết cấu phía trên mặt nước của giàn khoan / công trình biển."
+  },
+  "Tổng công ty": {
+    "term": "Tổng công ty",
+    "full_name_en": "",
+    "full_name_vi": "tên riêng tổng công ty",
+    "domain": "General",
+    "standard_case": "Tổng công ty",
+    "incorrect_variants": [
+      "Tổng Công ty"
+    ],
+    "synonyms": [],
+    "do_not_translate": true,
+    "description": ""
+  },
+  "WPS": {
+    "term": "WPS",
+    "full_name_en": "Welding Procedure Specification",
+    "full_name_vi": "Quy trình hàn",
+    "domain": "Mechanical",
+    "standard_case": "WPS",
+    "incorrect_variants": [
+      "wps",
+      "Wps",
+      "W.P.S"
+    ],
+    "synonyms": [
+      "quy trình hàn WPS"
+    ],
+    "do_not_translate": true,
+    "description": "Tài liệu kỹ thuật quy định thông số & phương pháp hàn."
+  }
+}

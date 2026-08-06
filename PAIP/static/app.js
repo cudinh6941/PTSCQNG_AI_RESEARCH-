@@ -981,4 +981,308 @@ Kính đề nghị Ban lảnh đạo xem xét phê duyệt phương án bổ xun
     };
     return text.replace(/[&<>"']/g, m => map[m]);
   }
+  // ════════════════════════════════════════════════════════
+  // GLOSSARY MANAGEMENT MODULE
+  // ════════════════════════════════════════════════════════
+
+  const navAgent0 = document.getElementById('navAgent0');
+  const navGlossary = document.getElementById('navGlossary');
+  const glossaryWorkspace = document.getElementById('glossaryWorkspace');
+  const workspaceToolbar = document.querySelector('.workspace-toolbar');
+  const appLayout = document.querySelector('.app-layout');
+
+  // Glossary DOM Elements
+  const glossarySearchInput = document.getElementById('glossarySearchInput');
+  const glossaryDomainFilter = document.getElementById('glossaryDomainFilter');
+  const glossaryTableBody = document.getElementById('glossaryTableBody');
+  const glossaryTotalCount = document.getElementById('glossaryTotalCount');
+  const btnAddTerm = document.getElementById('btnAddTerm');
+  const btnReloadRules = document.getElementById('btnReloadRules');
+  const btnTestRules = document.getElementById('btnTestRules');
+  const glossaryTestInput = document.getElementById('glossaryTestInput');
+  const glossaryTestResult = document.getElementById('glossaryTestResult');
+
+  // Stats
+  const statTotalTerms = document.getElementById('statTotalTerms');
+  const statTotalDomains = document.getElementById('statTotalDomains');
+  const statsDomainBreakdown = document.getElementById('statsDomainBreakdown');
+
+  // Modal
+  const glossaryModal = document.getElementById('glossaryModal');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalTermInput = document.getElementById('modalTermInput');
+  const modalDomainInput = document.getElementById('modalDomainInput');
+  const modalFullNameVi = document.getElementById('modalFullNameVi');
+  const modalFullNameEn = document.getElementById('modalFullNameEn');
+  const modalVariantsInput = document.getElementById('modalVariantsInput');
+  const modalDescInput = document.getElementById('modalDescInput');
+  const modalDoNotTranslate = document.getElementById('modalDoNotTranslate');
+  const btnModalSave = document.getElementById('btnModalSave');
+  const btnModalCancel = document.getElementById('btnModalCancel');
+  const btnModalClose = document.getElementById('btnModalClose');
+
+  let glossaryEditMode = null; // null = add, string = term being edited
+
+  // ── Navigation Toggle ──────────────────────────────────
+  if (navGlossary) {
+    navGlossary.addEventListener('click', () => {
+      navAgent0.classList.remove('active');
+      navGlossary.classList.add('active');
+      workspaceToolbar.style.display = 'none';
+      appLayout.style.display = 'none';
+      glossaryWorkspace.style.display = 'flex';
+      loadGlossaryData();
+      loadGlossaryStats();
+    });
+  }
+  if (navAgent0) {
+    navAgent0.addEventListener('click', () => {
+      navGlossary.classList.remove('active');
+      navAgent0.classList.add('active');
+      workspaceToolbar.style.display = '';
+      appLayout.style.display = '';
+      glossaryWorkspace.style.display = 'none';
+    });
+  }
+
+  // ── Load Glossary Data ─────────────────────────────────
+  let glossaryDebounceTimer = null;
+
+  async function loadGlossaryData() {
+    const query = glossarySearchInput ? glossarySearchInput.value.trim() : '';
+    const domain = glossaryDomainFilter ? glossaryDomainFilter.value : '';
+
+    let url = '/api/v1/rules/glossary?';
+    if (query) url += `query=${encodeURIComponent(query)}&`;
+    if (domain) url += `domain=${encodeURIComponent(domain)}&`;
+
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      renderGlossaryTable(data.items || []);
+      glossaryTotalCount.textContent = `${data.total || 0} thuật ngữ`;
+    } catch (e) {
+      glossaryTableBody.innerHTML = `<tr class="glossary-empty-row"><td colspan="5"><div class="glossary-empty-state"><span>⚠️</span><p>Lỗi tải dữ liệu</p></div></td></tr>`;
+    }
+  }
+
+  function renderGlossaryTable(items) {
+    if (!items.length) {
+      glossaryTableBody.innerHTML = `<tr class="glossary-empty-row"><td colspan="5"><div class="glossary-empty-state"><span>📚</span><p>Không tìm thấy thuật ngữ nào</p></div></td></tr>`;
+      return;
+    }
+    glossaryTableBody.innerHTML = items.map(item => `
+      <tr>
+        <td class="glossary-term-cell">${escapeHtml(item.term)}</td>
+        <td class="glossary-fullname-cell" title="${escapeHtml(item.full_name_vi || '')}">
+          ${escapeHtml(item.full_name_vi || item.full_name_en || '—')}
+        </td>
+        <td><span class="glossary-domain-badge" data-domain="${escapeHtml(item.domain)}">${escapeHtml(item.domain)}</span></td>
+        <td class="glossary-variants-cell" title="${escapeHtml((item.incorrect_variants || []).join(', '))}">
+          ${(item.incorrect_variants || []).slice(0, 3).map(v => escapeHtml(v)).join(', ') || '—'}
+        </td>
+        <td class="glossary-actions-cell">
+          <button onclick="window._glossaryEdit('${escapeHtml(item.term)}')">✏️</button>
+          <button class="btn-delete" onclick="window._glossaryDelete('${escapeHtml(item.term)}')">🗑️</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  // Search & Filter (with debounce)
+  if (glossarySearchInput) {
+    glossarySearchInput.addEventListener('input', () => {
+      clearTimeout(glossaryDebounceTimer);
+      glossaryDebounceTimer = setTimeout(loadGlossaryData, 300);
+    });
+  }
+  if (glossaryDomainFilter) {
+    glossaryDomainFilter.addEventListener('change', loadGlossaryData);
+  }
+
+  // ── Load Stats ─────────────────────────────────────────
+  async function loadGlossaryStats() {
+    try {
+      const res = await fetch('/api/v1/rules/stats');
+      const data = await res.json();
+      statTotalTerms.textContent = data.total_glossary_terms || 0;
+      const domains = data.domains || {};
+      const domainKeys = Object.keys(domains);
+      statTotalDomains.textContent = domainKeys.length;
+
+      // Domain breakdown badges
+      statsDomainBreakdown.innerHTML = domainKeys.map(d =>
+        `<span class="glossary-domain-badge" data-domain="${escapeHtml(d)}">${escapeHtml(d)} (${domains[d]})</span>`
+      ).join('');
+
+      // Populate domain filter dropdown
+      if (glossaryDomainFilter) {
+        const currentVal = glossaryDomainFilter.value;
+        glossaryDomainFilter.innerHTML = '<option value="">Tất cả lĩnh vực</option>' +
+          domainKeys.sort().map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
+        glossaryDomainFilter.value = currentVal;
+      }
+    } catch (e) {
+      // Silently fail
+    }
+  }
+
+  // ── Reload Rules ───────────────────────────────────────
+  if (btnReloadRules) {
+    btnReloadRules.addEventListener('click', async () => {
+      btnReloadRules.disabled = true;
+      btnReloadRules.textContent = '⏳ Đang nạp...';
+      try {
+        const res = await fetch('/api/v1/rules/reload', { method: 'POST' });
+        const data = await res.json();
+        showToast(`✅ ${data.message} (${data.glossary_count} thuật ngữ, ${data.reload_time_ms}ms)`);
+        loadGlossaryData();
+        loadGlossaryStats();
+      } catch (e) {
+        showToast('❌ Lỗi reload Rule Engine');
+      }
+      btnReloadRules.disabled = false;
+      btnReloadRules.textContent = '🔄 Đồng Bộ';
+    });
+  }
+
+  // ── Test Playground ────────────────────────────────────
+  if (btnTestRules) {
+    btnTestRules.addEventListener('click', async () => {
+      const text = glossaryTestInput.value.trim();
+      if (!text) return;
+      btnTestRules.disabled = true;
+      btnTestRules.textContent = '⏳ Đang kiểm tra...';
+      try {
+        const res = await fetch('/api/v1/rules/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text }),
+        });
+        const data = await res.json();
+        glossaryTestResult.style.display = 'block';
+
+        if (data.violations && data.violations.length > 0) {
+          glossaryTestResult.innerHTML = data.violations.map(v => `
+            <div class="test-violation-item">
+              <span class="test-violation-original">${escapeHtml(v.original_text)}</span>
+              <span class="test-violation-arrow">➔</span>
+              <span class="test-violation-fix">${escapeHtml(v.suggested_fix)}</span>
+            </div>
+          `).join('') + `<div class="test-processing-time">⚡ ${data.processing_time_ms}ms</div>`;
+        } else {
+          glossaryTestResult.innerHTML = `<div class="test-no-issues">✅ Không phát hiện vi phạm quy chuẩn</div><div class="test-processing-time">⚡ ${data.processing_time_ms}ms</div>`;
+        }
+      } catch (e) {
+        glossaryTestResult.style.display = 'block';
+        glossaryTestResult.innerHTML = `<div style="color: #ef4444;">❌ Lỗi kiểm tra</div>`;
+      }
+      btnTestRules.disabled = false;
+      btnTestRules.textContent = '⚡ Kiểm Tra';
+    });
+  }
+
+  // ── Modal: Add / Edit ──────────────────────────────────
+  function openModal(mode = 'add', termData = null) {
+    glossaryEditMode = mode === 'edit' ? termData.term : null;
+    modalTitle.textContent = mode === 'edit' ? '✏️ Chỉnh Sửa Thuật Ngữ' : '➕ Thêm Thuật Ngữ Mới';
+    modalTermInput.value = termData ? termData.term : '';
+    modalTermInput.disabled = mode === 'edit';
+    modalDomainInput.value = termData ? (termData.domain || '') : '';
+    modalFullNameVi.value = termData ? (termData.full_name_vi || '') : '';
+    modalFullNameEn.value = termData ? (termData.full_name_en || '') : '';
+    modalVariantsInput.value = termData ? (termData.incorrect_variants || []).join(', ') : '';
+    modalDescInput.value = termData ? (termData.description || '') : '';
+    modalDoNotTranslate.checked = termData ? !!termData.do_not_translate : false;
+    glossaryModal.style.display = 'flex';
+  }
+
+  function closeModal() {
+    glossaryModal.style.display = 'none';
+    glossaryEditMode = null;
+  }
+
+  if (btnAddTerm) btnAddTerm.addEventListener('click', () => openModal('add'));
+  if (btnModalCancel) btnModalCancel.addEventListener('click', closeModal);
+  if (btnModalClose) btnModalClose.addEventListener('click', closeModal);
+
+  if (btnModalSave) {
+    btnModalSave.addEventListener('click', async () => {
+      const term = modalTermInput.value.trim();
+      if (!term) {
+        showToast('⚠️ Vui lòng nhập thuật ngữ chuẩn');
+        return;
+      }
+      const variants = modalVariantsInput.value.split(',').map(v => v.trim()).filter(Boolean);
+
+      const payload = {
+        term,
+        domain: modalDomainInput.value.trim() || 'General',
+        full_name_vi: modalFullNameVi.value.trim(),
+        full_name_en: modalFullNameEn.value.trim(),
+        incorrect_variants: variants,
+        description: modalDescInput.value.trim(),
+        do_not_translate: modalDoNotTranslate.checked,
+      };
+
+      btnModalSave.disabled = true;
+      try {
+        let res;
+        if (glossaryEditMode) {
+          res = await fetch(`/api/v1/rules/glossary/${encodeURIComponent(glossaryEditMode)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+        } else {
+          res = await fetch('/api/v1/rules/glossary', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+        }
+        const data = await res.json();
+        if (res.ok) {
+          showToast(`✅ ${data.message}`);
+          closeModal();
+          loadGlossaryData();
+          loadGlossaryStats();
+        } else {
+          showToast(`⚠️ ${data.detail || 'Lỗi lưu thuật ngữ'}`);
+        }
+      } catch (e) {
+        showToast('❌ Lỗi kết nối server');
+      }
+      btnModalSave.disabled = false;
+    });
+  }
+
+  // Global edit/delete handlers
+  window._glossaryEdit = async (term) => {
+    try {
+      const res = await fetch(`/api/v1/rules/glossary/${encodeURIComponent(term)}`);
+      if (res.ok) {
+        const data = await res.json();
+        openModal('edit', data);
+      }
+    } catch (e) { /* silent */ }
+  };
+
+  window._glossaryDelete = async (term) => {
+    if (!confirm(`Xóa thuật ngữ "${term}" khỏi kho từ điển?`)) return;
+    try {
+      const res = await fetch(`/api/v1/rules/glossary/${encodeURIComponent(term)}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (res.ok) {
+        showToast(`✅ ${data.message}`);
+        loadGlossaryData();
+        loadGlossaryStats();
+      } else {
+        showToast(`⚠️ ${data.detail || 'Lỗi xóa'}`);
+      }
+    } catch (e) {
+      showToast('❌ Lỗi kết nối server');
+    }
+  };
+
 });

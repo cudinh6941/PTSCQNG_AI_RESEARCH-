@@ -45,6 +45,11 @@
         <span class="agent-icon">📑</span>
         <span class="agent-name">Agent 2: Trợ Lý Quy Trình</span>
       </button>
+      <div class="nav-divider"></div>
+      <button class="agent-nav-item" id="navGlossary" title="Quản trị Từ Điển & Quy Chuẩn PTSC">
+        <span class="agent-icon">📚</span>
+        <span class="agent-name">Từ Điển & Quy Chuẩn</span>
+      </button>
     </nav>
 
     <!-- Header Telemetry & Status -->
@@ -140,7 +145,8 @@
           <!-- Input Mode Tabs -->
           <div class="input-tabs">
             <button class="input-tab-btn active" id="tabTextBtn">✍️ Soạn Thảo</button>
-            <button class="input-tab-btn" id="tabHighlightBtn" style="display: none;">🔍 Bản Rà Soát (<span id="highlightCount">0</span>)</button>
+            <button class="input-tab-btn" id="tabHighlightBtn" style="display: none;">🔍 Bản Rà Soát (<span
+                id="highlightCount">0</span>)</button>
             <button class="input-tab-btn" id="tabFileBtn">📁 Tải File Lên</button>
           </div>
         </div>
@@ -151,7 +157,7 @@
         <div class="text-editor-container" id="textModeContainer">
           <textarea id="documentText"
             placeholder="Dán hoặc nhập nội dung công văn, tờ trình, hợp đồng cần rà soát vào đây...&#10;&#10;Hoặc chuyển sang tab 'Tải File Lên' để upload trực tiếp file Word (.docx), PDF (.pdf)."></textarea>
-          
+
           <!-- Interactive Visualizer with In-text Highlighting -->
           <div class="interactive-viewer" id="interactiveViewer" style="display: none;"></div>
 
@@ -289,6 +295,139 @@
     </section>
 
   </main>
+
+  <!-- GLOSSARY MANAGEMENT WORKSPACE (shown when Từ Điển tab is active) -->
+  <section class="glossary-workspace" id="glossaryWorkspace" style="display: none;">
+
+    <!-- Glossary Toolbar -->
+    <div class="glossary-toolbar">
+      <div class="glossary-toolbar-left">
+        <div class="glossary-search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="glossarySearchInput" placeholder="Tìm kiếm thuật ngữ...">
+        </div>
+        <div class="select-wrapper glossary-domain-filter">
+          <select id="glossaryDomainFilter">
+            <option value="">Tất cả lĩnh vực</option>
+          </select>
+        </div>
+      </div>
+      <div class="glossary-toolbar-right">
+        <button class="btn-secondary" id="btnReloadRules" title="Nạp lại Rule Engine">🔄 Đồng Bộ</button>
+        <button class="btn-primary glossary-add-btn" id="btnAddTerm">+ Thêm Từ Mới</button>
+      </div>
+    </div>
+
+    <!-- Glossary Layout: Table + Side Panel -->
+    <div class="glossary-layout">
+
+      <!-- Left: Glossary Data Table -->
+      <div class="glossary-table-container">
+        <div class="glossary-table-header">
+          <span class="glossary-count" id="glossaryTotalCount">0 thuật ngữ</span>
+        </div>
+        <div class="glossary-table-scroll">
+          <table class="glossary-table" id="glossaryTable">
+            <thead>
+              <tr>
+                <th>Thuật ngữ chuẩn</th>
+                <th>Tên đầy đủ</th>
+                <th>Lĩnh vực</th>
+                <th>Biến thể sai</th>
+                <th>Hành động</th>
+              </tr>
+            </thead>
+            <tbody id="glossaryTableBody">
+              <tr class="glossary-empty-row">
+                <td colspan="5">
+                  <div class="glossary-empty-state">
+                    <span>📚</span>
+                    <p>Đang tải dữ liệu từ điển...</p>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Right: Test Playground & Stats -->
+      <div class="glossary-side-panel">
+        <!-- Stats Card -->
+        <div class="glossary-stats-card">
+          <div class="stats-card-title">📊 Thống Kê Rule Engine</div>
+          <div class="stats-grid" id="glossaryStatsGrid">
+            <div class="stat-item">
+              <div class="stat-number" id="statTotalTerms">--</div>
+              <div class="stat-label">Thuật ngữ</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number" id="statTotalDomains">--</div>
+              <div class="stat-label">Lĩnh vực</div>
+            </div>
+          </div>
+          <div class="stats-domain-breakdown" id="statsDomainBreakdown"></div>
+        </div>
+
+        <!-- Test Playground Card -->
+        <div class="glossary-test-card">
+          <div class="stats-card-title">🧪 Kiểm Tra Nhanh</div>
+          <textarea id="glossaryTestInput" class="glossary-test-textarea"
+            placeholder="Nhập văn bản mẫu để kiểm tra Rule Engine...&#10;&#10;Ví dụ: Công ty ptsc-qng triển khai fpso"></textarea>
+          <button class="btn-primary glossary-test-btn" id="btnTestRules">⚡ Kiểm Tra</button>
+          <div class="glossary-test-result" id="glossaryTestResult" style="display: none;"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Add/Edit Term Modal -->
+  <div class="modal-overlay" id="glossaryModal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modalTitle">➕ Thêm Thuật Ngữ Mới</h3>
+        <button class="modal-close-btn" id="btnModalClose">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-form-grid">
+          <div class="form-group">
+            <label for="modalTermInput">Thuật ngữ chuẩn <span class="required">*</span></label>
+            <input type="text" id="modalTermInput" placeholder="VD: FPSO">
+          </div>
+          <div class="form-group">
+            <label for="modalDomainInput">Lĩnh vực</label>
+            <input type="text" id="modalDomainInput" placeholder="VD: Offshore, HSEQ, Corporate">
+          </div>
+          <div class="form-group full-width">
+            <label for="modalFullNameVi">Tên đầy đủ (Tiếng Việt)</label>
+            <input type="text" id="modalFullNameVi" placeholder="VD: Kho nổi chứa, xử lý và xuất dầu thô">
+          </div>
+          <div class="form-group full-width">
+            <label for="modalFullNameEn">Tên đầy đủ (Tiếng Anh)</label>
+            <input type="text" id="modalFullNameEn" placeholder="VD: Floating Production Storage and Offloading">
+          </div>
+          <div class="form-group full-width">
+            <label for="modalVariantsInput">Các biến thể viết sai (phân cách bằng dấu phẩy)</label>
+            <input type="text" id="modalVariantsInput" placeholder="VD: fpso, Fpso, F.P.S.O">
+          </div>
+          <div class="form-group full-width">
+            <label for="modalDescInput">Mô tả ngắn</label>
+            <input type="text" id="modalDescInput"
+              placeholder="VD: Tàu/kho nổi chuyên dụng trong khai thác dầu khí ngoài khơi.">
+          </div>
+          <div class="form-group checkbox-group">
+            <label>
+              <input type="checkbox" id="modalDoNotTranslate"> Không được dịch (do_not_translate)
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="btnModalCancel">Hủy</button>
+        <button class="btn-primary" id="btnModalSave">💾 Lưu</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Toast Notification Container -->
   <div class="toast-container" id="toastContainer"></div>

@@ -24,8 +24,19 @@ def build_user_prompt(
     document_text: str,
     mode: str = "standard",
     custom_instructions: str | None = None,
+    glossary_context: str = "",
+    whitelist_terms: list[str] | None = None,
 ) -> str:
-    """Xây dựng user prompt động dựa trên chế độ kiểm tra và ghi chú người dùng."""
+    """Xây dựng user prompt động dựa trên chế độ kiểm tra và ghi chú người dùng.
+
+    Args:
+        document_text: Nội dung văn bản cần kiểm tra.
+        mode: Chế độ kiểm tra (standard / formal / strict / legal).
+        custom_instructions: Ghi chú / yêu cầu đặc biệt từ người dùng.
+        glossary_context: Đoạn text chứa định nghĩa thuật ngữ chuyên ngành
+            do Rule Engine cung cấp (bơm vào prompt để AI không bắt lỗi nhầm).
+        whitelist_terms: Danh sách từ chuẩn nội bộ mà AI tuyệt đối không được sửa.
+    """
     
     mode_instructions = {
         "standard": (
@@ -53,7 +64,19 @@ def build_user_prompt(
     if custom_instructions and custom_instructions.strip():
         custom_section = f"\nYÊU CẦU ĐẶC BIỆT TỪ NGƯỜI DÙNG:\n> {custom_instructions.strip()}\n"
 
+    # Rule Engine: Bơm ngữ cảnh từ điển & whitelist vào prompt
+    glossary_section = ""
+    if glossary_context:
+        glossary_section = f"\n{glossary_context}\n"
+    if whitelist_terms:
+        whitelist_csv = ", ".join(whitelist_terms)
+        glossary_section += (
+            f"\nDANH SÁCH TỪ NỘI BỘ PTSC (WHITELIST — TUYỆT ĐỐI GIỮ NGUYÊN, KHÔNG SỬA, KHÔNG BẮT LỖI):\n"
+            f"{whitelist_csv}\n"
+        )
+
     return f"""{selected_mode_text}
+{glossary_section}
 {custom_section}
 Hãy rà soát kỹ lưỡng văn bản dưới đây và trả về kết quả theo ĐÚNG định dạng JSON:
 

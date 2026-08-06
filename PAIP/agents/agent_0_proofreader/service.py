@@ -12,6 +12,8 @@ from core.common.logger import logger
 from core.common.schemas import LLMProvider
 from core.document import document_reader
 from core.llm import llm_service
+from core.rule_engine import RuleContext, rule_engine
+from core.rule_engine.base import RuleType
 
 from .prompts import SYSTEM_PROMPT, build_user_prompt
 from .schemas import ErrorType, ProofreadError, ProofreadResponse, ProofreadResult, Severity
@@ -66,11 +68,28 @@ class ProofreaderService:
 
         logger.info(f"Proofreading: {len(text)} chars, mode={mode}, user={user_id}, dept={department}")
 
-        # Build prompt dynamically based on mode and custom instructions
+        # ── BƯỚC 1: Rule Engine Pre-Scan (< 5ms, 0 token) ──
+        rule_context = RuleContext(
+            text=text,
+            mode=mode,
+            department=department,
+            user_id=user_id,
+        )
+        rule_result = rule_engine.evaluate(rule_context)
+
+        logger.info(
+            f"Rule Engine: {len(rule_result.violations)} violations, "
+            f"{len(rule_result.detected_terms)} terms detected, "
+            f"{rule_result.processing_time_ms:.1f}ms"
+        )
+
+        # ── BƯỚC 2: Build prompt (bơm glossary context + whitelist) ──
         user_prompt = build_user_prompt(
             document_text=text,
             mode=mode,
             custom_instructions=custom_instructions,
+            glossary_context=rule_result.prompt_injection,
+            whitelist_terms=rule_result.whitelist_terms,
         )
 
         # Detect if real-time legal grounding / search is needed
@@ -99,6 +118,9 @@ class ProofreaderService:
 
         # Parse response
         result = self._parse_llm_response(llm_result.content)
+
+        # ── BƯỚC 4: Merge kết quả Rule Engine + LLM ──────
+        result = self._merge_rule_engine_results(result, rule_result)
 
         processing_time = (time.time() - start_time) * 1000
 
@@ -158,6 +180,55 @@ class ProofreaderService:
         )
         response.extracted_text = cleaned_text
         return response
+
+    def _merge_rule_engine_results(
+        self,
+        llm_result: ProofreadResult,
+        rule_result,
+    ) -> ProofreadResult:
+        """
+        Hợp nhất kết quả từ Rule Engine (deterministic) và LLM (AI).
+
+        Quy tắc:
+        - Lỗi Rule Engine (source=company_standard) luôn đứng đầu.
+        - Nếu LLM bắt lỗi cùng một từ mà Rule Engine đã nhận là đúng chuẩn
+          (nằm trong whitelist) → Loại bỏ lỗi LLM (False Positive).
+        """
+        rule_errors: list[ProofreadError] = []
+        for violation in rule_result.violations:
+            rule_errors.append(
+                ProofreadError(
+                    type=ErrorType.SPELLING,
+                    original=violation.original_text,
+                    suggested=violation.suggested_fix,
+                    explanation=f"[Chuẩn PTSC] {violation.explanation}",
+                    severity=Severity.HIGH,
+                )
+            )
+
+        # Lọc bỏ False Positive từ LLM (LLM bắt lỗi từ nằm trong whitelist)
+        whitelist_set = {t.lower() for t in rule_result.whitelist_terms}
+        filtered_llm_errors: list[ProofreadError] = []
+        for err in llm_result.errors:
+            original_lower = err.original.lower().strip()
+            # Nếu LLM bắt lỗi 1 từ nằm trong whitelist → bỏ qua
+            if original_lower in whitelist_set:
+                logger.debug(
+                    f"Filtered LLM false positive: '{err.original}' is in whitelist"
+                )
+                continue
+            filtered_llm_errors.append(err)
+
+        # Merge: Rule Engine errors trước, LLM errors sau
+        merged_errors = rule_errors + filtered_llm_errors
+
+        return ProofreadResult(
+            total_errors=len(merged_errors),
+            errors=merged_errors,
+            summary=llm_result.summary,
+            score=llm_result.score,
+        )
+
 
     def _clean_document_text(self, text: str) -> str:
         """Làm sạch các dòng header/footer lặp lại vô nghĩa giữa các trang."""

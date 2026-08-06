@@ -41,6 +41,9 @@ PAIP/
 | Obsidian (Design) | Code (Build) |
 |---|---|
 | `Architecture/Agent_Catalog/Agent_0_*.md` | `agents/agent_0_proofreader/` |
+| `Architecture/Rule_Engine_Architecture.md` | `core/rule_engine/` & `docs/RULE_ENGINE_SPEC.md` |
+| `Architecture/Database_Architecture.md` | `core/database/` & `docs/DATABASE_SPEC.md` |
+| `Architecture/LDAP_Auth_Architecture.md` | `core/auth/` & `docs/LDAP_AUTH_SPEC.md` |
 | `Lab&Research/Prompts/Prompt_*.md` | `agents/*/prompts.py` |
 | `Lab&Research/POC/POC_*.md` (test cases) | `tests/` |
 | `Architecture/PAIP_Architecture.md` | Cấu trúc tổng thể |
