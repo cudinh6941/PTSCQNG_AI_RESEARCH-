@@ -19,11 +19,12 @@ from core.common.logger import logger
 
 from .base import RuleResult, RuleViolation
 from .context import RuleContext
+from .loaders.db_loader import DatabaseGlossaryLoader
 from .loaders.json_loader import GlossaryItem, GlossaryLoader
 from .rules.glossary_rule import GlossaryRule
 
 
-# Đường dẫn mặc định đến thư mục data
+# Đường dẫn mặc định đến thư mục data (cho JSON fallback)
 _DEFAULT_DATA_DIR = Path(__file__).resolve().parent / "data"
 
 
@@ -32,18 +33,25 @@ class RuleEngine:
     Bộ máy thực thi quy tắc (Rule Engine) cho PAIP.
 
     Chức năng chính:
-    - Quản lý vòng đời: init → load → compile → evaluate.
+    - Quản lý vòng đời: init → load từ Database → compile Regex vào RAM → evaluate.
     - Hợp nhất kết quả từ nhiều Rules.
-    - Hot-reload: Nạp lại dữ liệu mà không cần restart server.
-    - CRUD proxy: Cung cấp API quản lý từ điển cho Router/UI.
+    - Hot-reload: Nạp lại dữ liệu từ CSDL mà không cần restart server.
     """
 
-    def __init__(self, data_dir: str | Path | None = None):
+    def __init__(
+        self,
+        loader: DatabaseGlossaryLoader | GlossaryLoader | None = None,
+        data_dir: str | Path | None = None,
+    ):
         self._data_dir = Path(data_dir) if data_dir else _DEFAULT_DATA_DIR
         self._is_loaded = False
 
-        # Khởi tạo Loader & Rules
-        self._glossary_loader = GlossaryLoader(data_dir=self._data_dir)
+        # Khởi tạo Loader: Mặc định là DatabaseGlossaryLoader
+        if loader is not None:
+            self._glossary_loader = loader
+        else:
+            self._glossary_loader = DatabaseGlossaryLoader()
+
         self._glossary_rule = GlossaryRule(loader=self._glossary_loader)
 
     @property
@@ -52,10 +60,10 @@ class RuleEngine:
 
     @property
     def glossary_count(self) -> int:
-        return self._glossary_loader.count
+        return len(self._glossary_loader.get_all_terms())
 
     @property
-    def glossary_loader(self) -> GlossaryLoader:
+    def glossary_loader(self) -> DatabaseGlossaryLoader | GlossaryLoader:
         return self._glossary_loader
 
     # ── Lifecycle ─────────────────────────────────────────

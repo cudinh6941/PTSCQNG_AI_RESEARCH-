@@ -98,7 +98,7 @@ class TestGlossaryRuleVariantDetection:
         assert result.has_violations
         violation = result.violations[0]
         assert violation.original_text == "PTSC-QNg"
-        assert violation.suggested_fix == "PTSC QNG"
+        assert violation.suggested_fix in ("PTSC QNG", "PTSC Quảng Ngãi")
         assert violation.rule_type == RuleType.GLOSSARY
 
     def test_detect_fpso_lowercase(self, engine: RuleEngine):

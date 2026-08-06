@@ -22,6 +22,7 @@ from core.common.schemas import HealthResponse
 # Import agent routers
 from agents.agent_0_proofreader.router import router as proofreader_router
 from api.rules_router import router as rules_router
+from core.database import init_db, seed_default_data
 from core.rule_engine import rule_engine
 
 
@@ -31,11 +32,16 @@ async def lifespan(app: FastAPI):
     logger.info("=" * 60)
     logger.info(f"🚀 {settings.app_name} starting...")
     logger.info(f"   Environment: {settings.app_env}")
+    logger.info(f"   Database: {settings.database_url}")
     logger.info(f"   Default LLM: {settings.default_llm_provider}")
     logger.info(f"   Vault: {settings.obsidian_vault_path}")
     logger.info("=" * 60)
 
-    # Khởi tạo Rule Engine (nạp từ điển & compile regex)
+    # 1. Khởi tạo Database Schema & Seed Data mặc định
+    await init_db()
+    await seed_default_data()
+
+    # 2. Khởi tạo Rule Engine (nạp từ điển từ DB lên RAM & compile regex)
     rule_engine.load()
 
     yield

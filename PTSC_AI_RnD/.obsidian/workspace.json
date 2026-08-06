@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Architecture/Database_Architecture.md",
+                "file": "Discovery/Pain_Points/PP_001_Log_loi_doc_bang_mat.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Database_Architecture"
+              "title": "PP_001_Log_loi_doc_bang_mat"
             }
           }
         ]
@@ -187,20 +187,23 @@
   },
   "active": "ca91d9d4adab3ef0",
   "lastOpenFiles": [
+    "Discovery/Pain_Points/PP_003_Loi_chinh_ta_van_ban.md",
+    "Discovery/Pain_Points/PP_002_Hop_khong_co_bien_ban.md",
+    "Discovery/Pain_Points/PP_001_Log_loi_doc_bang_mat.md",
+    "Architecture/Agent_Catalog/Agent_0_Document_Proofreader.md",
+    "Dashboard/Agent_Progress.md",
+    "Dashboard/AI_Opportunity_Matrix.md",
+    "Architecture/Database_Architecture.md",
     "Templates/Tpl_Agent.md",
     "Templates/Tpl_Daily.md",
     "Templates/Tpl_Interview.md",
     "Templates/Tpl_Pain_Point.md",
-    "Dashboard/AI_Opportunity_Matrix.md",
     "Templates/Tpl_Tech_Note.md",
-    "Architecture/Agent_Catalog/Agent_0_Document_Proofreader.md",
     "Dashboard/Research_Overview.md",
-    "Dashboard/Agent_Progress.md",
     "Dashboard/Pain_Point_Heatmap.md",
     "Dashboard/POC_Tracker.md",
     "Strategy/ROI_Analysis.md",
     "Strategy/Roadmap.md",
-    "Discovery/Pain_Points/PP_001_Log_loi_doc_bang_mat.md",
     "Templates/Tpl_Weekly.md",
     "Templates/Tpl_POC.md",
     "Architecture/Agent_Catalog/Agent_6_IT_Assistant.md",
@@ -210,9 +213,6 @@
     "Architecture/Agent_Catalog/Agent_3_Procurement_Assistant.md",
     "Architecture/Agent_Catalog/Agent_5_HSEQ_Assistant.md",
     "Journal/Weekly/_README.md",
-    "Journal/Daily/_README.md",
-    "Journal/Daily/2026-08-04.md",
-    "Inbox/_README.md",
     "Journal/Weekly",
     "Journal/Daily",
     "Journal",

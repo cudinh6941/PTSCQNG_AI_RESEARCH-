@@ -45,6 +45,10 @@ class Settings(BaseSettings):
     monthly_cost_limit_usd: float = 50.0
     alert_threshold_usd: float = 40.0
 
+    # --- Database & Persistence ---
+    database_url: str = "sqlite+aiosqlite:///./data/paip.db"
+    db_echo_sql: bool = False
+
     # --- Logging ---
     log_level: str = "INFO"
     log_file: str = "logs/paip.log"

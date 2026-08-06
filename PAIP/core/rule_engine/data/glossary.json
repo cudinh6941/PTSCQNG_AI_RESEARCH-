@@ -316,6 +316,8 @@
     "domain": "General",
     "standard_case": "PTSC Quảng Ngãi",
     "incorrect_variants": [
+      "PTSC-QNg",
+      "PTSC-QNG",
       "PTSCQNG",
       "PTSC QNG",
       "PTSCQN"
