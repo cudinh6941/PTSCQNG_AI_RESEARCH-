@@ -298,3 +298,33 @@
   max-width: 100%;
 }
 
+/* Active Applied Format State */
+.btn-auto-format.btn-format-applied {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+  border: 1px solid rgba(52, 211, 153, 0.4);
+}
+
+.btn-auto-format.btn-format-applied:hover {
+  background: linear-gradient(135deg, #047857 0%, #059669 100%);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+  filter: brightness(1.15);
+}
+
+/* Highlight attention on final export button */
+.pulse-highlight {
+  animation: pulse-glow-export 1.2s ease-in-out infinite alternate !important;
+}
+
+@keyframes pulse-glow-export {
+  0% {
+    box-shadow: 0 0 5px rgba(37, 99, 235, 0.4);
+    transform: scale(1);
+  }
+  100% {
+    box-shadow: 0 0 25px rgba(37, 99, 235, 0.9), 0 0 10px rgba(16, 185, 129, 0.8);
+    transform: scale(1.04);
+  }
+}
+
+

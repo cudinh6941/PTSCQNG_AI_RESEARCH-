@@ -9,7 +9,9 @@ export const appState = {
   currentUploadedFilename: '',
   currentErrors: [],
   formatReport: null,
+  isFormatApplied: false,
   activeFilter: 'all',
+
   isAnalyzing: false,
   totalSessionTokens: 0,
   glossaryTerms: [],

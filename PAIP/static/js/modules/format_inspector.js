@@ -68,6 +68,13 @@ export const formatInspector = {
       `;
     }
 
+    // Default to enabled if format issues exist
+    if (appState.isFormatApplied === undefined || appState.isFormatApplied === null) {
+      appState.isFormatApplied = true;
+    }
+
+    const isApplied = appState.isFormatApplied;
+
     cardEl.innerHTML = `
       <div class="format-card-header">
         <div class="format-title-group">
@@ -154,18 +161,21 @@ export const formatInspector = {
 
       ${issuesHtml}
 
-      <!-- Hero 1-Click Auto-Format CTA -->
+      <!-- Option 2: Apply Format Integration Box -->
       <div class="auto-format-hero-box">
         <div class="auto-format-info">
           <div class="auto-format-title">
-            <span>✨</span> Tự Động Chuẩn Hóa Thể Thức (1-Click)
+            <span>✨</span> Tự Động Chuẩn Hóa Thể Thức (Nghị định 30)
           </div>
-          <div class="auto-format-desc">
-            Tự căn lề 3-1.5-2-2cm, chuyển font Times New Roman, cỡ 13pt & căn đều Justified hoàn hảo.
+          <div class="auto-format-desc" id="formatDescText">
+            ${isApplied 
+              ? '✅ <strong>Đang kích hoạt:</strong> Lề 3-1.5-2-2cm, toàn bộ font Times New Roman & căn đều sẽ tự động chuẩn hóa khi bạn bấm <em>"Tải File Word"</em> bên dưới.' 
+              : 'Tự động căn lề 3-1.5-2-2cm, chuyển font Times New Roman, cỡ 13pt & căn đều Justified hoàn hảo khi xuất văn bản.'}
           </div>
         </div>
-        <button class="btn-auto-format" id="btnHeroAutoFormat">
-          <span>🪄 Chuẩn Hóa & Tải Word</span>
+        <button class="btn-auto-format ${isApplied ? 'btn-format-applied' : ''}" id="btnHeroAutoFormat">
+          <span id="btnHeroFormatIcon">${isApplied ? '✅' : '🪄'}</span>
+          <span id="btnHeroFormatText">${isApplied ? 'Đã Bật Chuẩn Hóa Thể Thức' : 'Áp Dụng Chuẩn Hóa Thể Thức'}</span>
         </button>
       </div>
     `;
@@ -176,38 +186,42 @@ export const formatInspector = {
     // Bind auto format click
     const btnHeroAutoFormat = $('#btnHeroAutoFormat');
     if (btnHeroAutoFormat) {
-      btnHeroAutoFormat.addEventListener('click', () => this.handleAutoFormat());
+      btnHeroAutoFormat.addEventListener('click', () => this.toggleFormatApplication());
     }
   },
 
-  async handleAutoFormat() {
-    if (!appState.selectedFile) {
-      showToast('Vui lòng chọn hoặc tải lên một file Word (.docx) để chuẩn hóa định dạng!', 'warning');
-      return;
-    }
+  toggleFormatApplication() {
+    appState.isFormatApplied = !appState.isFormatApplied;
+    const isApplied = appState.isFormatApplied;
 
-    try {
-      updateSystemStatus('Đang tự động chuẩn hóa định dạng file Word...', true);
-      showToast('Đang xử lý chuẩn hóa lề, font và căn dòng theo Nghị định 30...', 'info');
+    const btn = $('#btnHeroAutoFormat');
+    const icon = $('#btnHeroFormatIcon');
+    const text = $('#btnHeroFormatText');
+    const desc = $('#formatDescText');
+    const btnExportDocx = $('#btnExportDocx');
 
-      const blob = await api.autoFormatDocx(appState.selectedFile);
-      
-      // Trigger download
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const baseName = appState.currentUploadedFilename ? appState.currentUploadedFilename.replace(/\.[^/.]+$/, "") : "VanBan";
-      a.download = `${baseName}_ChuanHoa_TheThuc_ND30.docx`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      a.remove();
+    if (btn && icon && text && desc) {
+      if (isApplied) {
+        btn.classList.add('btn-format-applied');
+        icon.textContent = '✅';
+        text.textContent = 'Đã Bật Chuẩn Hóa Thể Thức';
+        desc.innerHTML = '✅ <strong>Đang kích hoạt:</strong> Lề 3-1.5-2-2cm, toàn bộ font Times New Roman & căn đều sẽ tự động chuẩn hóa khi bạn bấm <em>"Tải File Word"</em> bên dưới.';
+        
+        showToast('✨ Đã kích hoạt chuẩn hóa thể thức NĐ 30! Hãy duyệt các lỗi chính tả bên dưới và bấm "Tải File Word" để nhận tài liệu hoàn chỉnh.', 'success');
 
-      updateSystemStatus('Hệ thống sẵn sàng', false);
-      showToast('✨ Đã tự động chuẩn hóa và tải về file Word thành công!', 'success');
-    } catch (err) {
-      updateSystemStatus('Lỗi chuẩn hóa file Word', false);
-      showToast(`Lỗi chuẩn hóa: ${err.message}`, 'error');
+        if (btnExportDocx) {
+          btnExportDocx.classList.add('pulse-highlight');
+          setTimeout(() => btnExportDocx.classList.remove('pulse-highlight'), 3500);
+        }
+      } else {
+        btn.classList.remove('btn-format-applied');
+        icon.textContent = '🪄';
+        text.textContent = 'Áp Dụng Chuẩn Hóa Thể Thức';
+        desc.textContent = 'Tự động căn lề 3-1.5-2-2cm, chuyển font Times New Roman, cỡ 13pt & căn đều Justified hoàn hảo khi xuất văn bản.';
+        
+        showToast('Đã tắt tự động chuẩn hóa thể thức khi xuất file.', 'info');
+      }
     }
   }
 };
+

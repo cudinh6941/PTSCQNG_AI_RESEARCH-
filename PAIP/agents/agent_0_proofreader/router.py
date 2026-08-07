@@ -14,6 +14,7 @@ import json
 from fastapi.responses import StreamingResponse
 import urllib.parse
 from core.document.writer import document_writer
+from core.document.format_inspector import docx_auto_formatter
 
 from .schemas import ExportDocxRequest, ProofreadRequest, ProofreadResponse
 from .service import proofreader_service
@@ -26,12 +27,14 @@ async def export_docx_inplace(
     file: UploadFile = File(..., description="File Word (.docx) gốc ban đầu"),
     replacements: str = Form(default="[]", description="JSON string của danh sách replacements [{'original': '...', 'suggested': '...'}]"),
     highlight_changes: bool = Form(default=False, description="Có tô màu vàng các từ đã sửa hay không"),
+    auto_format: bool = Form(default=True, description="Có tự động chuẩn hóa thể thức lề, font, căn dòng theo NĐ 30 hay không"),
 ):
     """
     Sửa trực tiếp trên file Word (.docx) gốc và BẢO TOÀN 100% TOÀN BỘ ĐỊNH DẠNG:
     - Bảng biểu, cột, viền ô, màu sắc.
     - Header, footer, logo công ty, hình ảnh, chữ ký, watermark.
     - Font chữ, font size, bold/italic, căn lề.
+    Nếu auto_format=True: Tự động chuẩn hóa lề 3-1.5-2-2cm, font Times New Roman, căn đều Justified theo NĐ 30.
     """
     content = await file.read()
     
@@ -46,10 +49,14 @@ async def export_docx_inplace(
         highlight_changes=highlight_changes,
     )
 
+    if auto_format:
+        docx_stream = docx_auto_formatter.auto_format(docx_stream.getvalue())
+
     orig_name = file.filename or "tai_lieu.docx"
     base_name = orig_name.rsplit(".", 1)[0]
     out_filename = f"{base_name}_da_chinh_sua.docx"
     encoded_filename = urllib.parse.quote(out_filename)
+
 
     return StreamingResponse(
         docx_stream,

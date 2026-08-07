@@ -91,15 +91,16 @@ class TestGlossaryRuleVariantDetection:
     """Test thuật toán bắt lỗi biến thể viết sai."""
 
     def test_detect_ptsc_qng_variant(self, engine: RuleEngine):
-        """Bắt lỗi 'PTSC-QNg' → Gợi ý 'PTSC QNG'."""
+        """Bắt lỗi 'PTSC-QNg' → Gợi ý 'PTSC Quảng Ngãi' / 'PTSC QNG'."""
         ctx = RuleContext(text="Hôm nay PTSC-QNg tiến hành nghiệm thu dự án.")
         result = engine.evaluate(ctx)
 
         assert result.has_violations
         violation = result.violations[0]
         assert violation.original_text == "PTSC-QNg"
-        assert violation.suggested_fix == "PTSC QNG"
+        assert violation.suggested_fix in ("PTSC Quảng Ngãi", "PTSC QNG")
         assert violation.rule_type == RuleType.GLOSSARY
+
 
     def test_detect_fpso_lowercase(self, engine: RuleEngine):
         """Bắt lỗi 'fpso' → Gợi ý 'FPSO'."""

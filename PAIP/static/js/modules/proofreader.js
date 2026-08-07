@@ -702,10 +702,12 @@ Kính đề nghị Ban lảnh đạo xem xét phê duyệt phương án bổ xun
           suggested: e.suggested || e.suggestion || ''
         })).filter(e => e.original && e.suggested && e.original !== e.suggested);
 
+        const autoFormatFlag = appState.isFormatApplied !== false;
         const formData = new FormData();
         formData.append('file', appState.selectedFile);
         formData.append('replacements', JSON.stringify(appliedReplacements));
         formData.append('highlight_changes', 'false');
+        formData.append('auto_format', autoFormatFlag ? 'true' : 'false');
 
         const response = await fetch('/api/v1/proofread/export-docx-inplace', {
           method: 'POST',
@@ -727,8 +729,13 @@ Kính đề nghị Ban lảnh đạo xem xét phê duyệt phương án bổ xun
         a.remove();
         window.URL.revokeObjectURL(downloadUrl);
 
-        showToast(`📥 Đã tải file Word gốc: ${filename}`, 'success');
+        if (autoFormatFlag) {
+          showToast(`📥 Đã tải file Word hoàn chỉnh (Đã sửa lỗi & Chuẩn thể thức NĐ 30): ${filename}`, 'success');
+        } else {
+          showToast(`📥 Đã tải file Word đã sửa lỗi: ${filename}`, 'success');
+        }
       } 
+
       // TRƯỜNG HỢP 2: Plain text -> Tạo file Word mới
       else {
         let filename = 'Van_ban_hoan_chinh.docx';

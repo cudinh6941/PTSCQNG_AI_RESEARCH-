@@ -318,7 +318,10 @@
     "incorrect_variants": [
       "PTSCQNG",
       "PTSC QNG",
-      "PTSCQN"
+      "PTSCQN",
+      "PTSC-QNg",
+      "ptsc qng",
+      "PTSC Qng"
     ],
     "synonyms": [],
     "do_not_translate": false,
