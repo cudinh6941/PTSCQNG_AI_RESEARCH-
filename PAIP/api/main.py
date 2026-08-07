@@ -23,6 +23,7 @@ from core.common.schemas import HealthResponse
 from agents.agent_0_proofreader.router import router as proofreader_router
 from api.rules_router import router as rules_router
 from api.format_router import router as format_router
+from core.database.session import init_db
 from core.rule_engine import rule_engine
 
 
@@ -37,11 +38,15 @@ async def lifespan(app: FastAPI):
     logger.info(f"   Vault: {settings.obsidian_vault_path}")
     logger.info("=" * 60)
 
+    # Khởi tạo CSDL Async
+    await init_db()
+
     # Khởi tạo Rule Engine (nạp từ điển & compile regex)
     rule_engine.load()
 
     yield
     logger.info(f"👋 {settings.app_name} shutting down...")
+
 
 
 # ── App Instance ──────────────────────────────────────────

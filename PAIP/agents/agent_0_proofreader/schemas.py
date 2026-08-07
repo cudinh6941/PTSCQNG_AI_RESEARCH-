@@ -10,6 +10,7 @@ from enum import Enum
 from pydantic import BaseModel, Field
 
 from core.common.schemas import AIRequest, AIResponse
+from core.scoring import QualityScoreBreakdown
 
 
 # ── Enums ─────────────────────────────────────────────────
@@ -20,6 +21,8 @@ class ErrorType(str, Enum):
     WORD_CHOICE = "word_choice"
     PUNCTUATION = "punctuation"
     LEGAL = "legal"
+    GLOSSARY = "glossary"
+    CONSISTENCY = "consistency"
 
 
 class Severity(str, Enum):
@@ -65,6 +68,8 @@ class ProofreadError(BaseModel):
     severity: Severity = Field(default=Severity.MEDIUM, description="Mức độ nghiêm trọng")
     source_link: str | None = Field(default=None, description="Đường dẫn nguồn pháp lý / văn bản đối chiếu (nếu có)")
     reference: str | None = Field(default=None, description="Tên số hiệu văn bản pháp lý trích dẫn (nếu có)")
+    side_a: dict | None = Field(default=None, description="Vế A trong đối soát bất nhất")
+    side_b: dict | None = Field(default=None, description="Vế B trong đối soát bất nhất")
 
 
 class ProofreadResult(BaseModel):
@@ -73,6 +78,8 @@ class ProofreadResult(BaseModel):
     errors: list[ProofreadError] = Field(default_factory=list, description="Danh sách lỗi")
     summary: str = Field(default="", description="Tóm tắt chất lượng")
     score: float = Field(default=0.0, description="Điểm chất lượng (1-10)")
+    score_breakdown: QualityScoreBreakdown | None = Field(default=None, description="Bảng phân rã điểm 4 trụ cột")
+
 
 
 class ProofreadResponse(AIResponse):

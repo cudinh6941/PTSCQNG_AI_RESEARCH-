@@ -15,10 +15,14 @@ from core.llm import llm_service
 from core.rule_engine import RuleContext, rule_engine
 from core.rule_engine.base import RuleType
 from core.document.format_inspector import docx_format_inspector
+from core.scoring import quality_scoring_engine
+from core.database.session import db_session
+from core.database.models import ProofreadHistory
 
 from .prompts import SYSTEM_PROMPT, build_user_prompt
 
 from .schemas import ErrorType, ProofreadError, ProofreadResponse, ProofreadResult, Severity
+
 
 
 class ProofreaderService:
@@ -124,11 +128,29 @@ class ProofreaderService:
         # ── BƯỚC 4: Merge kết quả Rule Engine + LLM ──────
         result = self._merge_rule_engine_results(result, rule_result)
 
+        # ── BƯỚC 5: Tính điểm chất lượng 4 Trụ Cột (Scoring Engine) ──
+        score_breakdown = quality_scoring_engine.evaluate(
+            errors=result.errors,
+            format_report=None,
+        )
+        result.score = score_breakdown.overall_score
+        result.score_breakdown = score_breakdown
+
         processing_time = (time.time() - start_time) * 1000
+
+        # Ghi nhận lịch sử rà soát vào CSDL
+        await self._save_history(
+            input_type="text",
+            filename=None,
+            result=result,
+            tokens_used=llm_result.total_tokens,
+            processing_time_ms=processing_time,
+            user_id=user_id,
+        )
 
         return ProofreadResponse(
             success=True,
-            message=f"Đã kiểm tra xong. Tìm thấy {result.total_errors} lỗi.",
+            message=f"Đã kiểm tra xong. Tìm thấy {result.total_errors} lỗi. Điểm chất lượng: {result.score}/10.",
             result=result,
             extracted_text=text,
             processing_time_ms=processing_time,
@@ -186,6 +208,25 @@ class ProofreaderService:
         if filename.lower().endswith(".docx"):
             try:
                 response.format_report = docx_format_inspector.inspect(file_content)
+                # Tái tính toán điểm số 4 trụ cột kết hợp báo cáo thể thức
+                if response.result:
+                    score_breakdown = quality_scoring_engine.evaluate(
+                        errors=response.result.errors,
+                        format_report=response.format_report,
+                    )
+                    response.result.score = score_breakdown.overall_score
+                    response.result.score_breakdown = score_breakdown
+                    response.message = f"Đã kiểm tra xong. Tìm thấy {response.result.total_errors} lỗi. Điểm chất lượng: {response.result.score}/10."
+                    
+                    # Cập nhật lịch sử với thông tin file
+                    await self._save_history(
+                        input_type="file",
+                        filename=filename,
+                        result=response.result,
+                        tokens_used=response.tokens_used or 0,
+                        processing_time_ms=response.processing_time_ms or 0.0,
+                        user_id=user_id,
+                    )
             except Exception as e:
                 logger.error(f"Format inspection error for {filename}: {e}")
 
@@ -201,19 +242,23 @@ class ProofreaderService:
         Hợp nhất kết quả từ Rule Engine (deterministic) và LLM (AI).
 
         Quy tắc:
-        - Lỗi Rule Engine (source=company_standard) luôn đứng đầu.
+        - Lỗi Rule Engine (source=company_standard) luôn đứng đầu và được phân loại là GLOSSARY.
         - Nếu LLM bắt lỗi cùng một từ mà Rule Engine đã nhận là đúng chuẩn
           (nằm trong whitelist) → Loại bỏ lỗi LLM (False Positive).
         """
         rule_errors: list[ProofreadError] = []
         for violation in rule_result.violations:
+            err_type = ErrorType.CONSISTENCY if violation.rule_type.value == "consistency" else ErrorType.GLOSSARY
+            prefix = "[Đối soát nhất quán]" if err_type == ErrorType.CONSISTENCY else "[Chuẩn PTSC]"
             rule_errors.append(
                 ProofreadError(
-                    type=ErrorType.SPELLING,
+                    type=err_type,
                     original=violation.original_text,
                     suggested=violation.suggested_fix,
-                    explanation=f"[Chuẩn PTSC] {violation.explanation}",
+                    explanation=f"{prefix} {violation.explanation}",
                     severity=Severity.HIGH,
+                    side_a=violation.side_a,
+                    side_b=violation.side_b,
                 )
             )
 
@@ -239,6 +284,44 @@ class ProofreaderService:
             summary=llm_result.summary,
             score=llm_result.score,
         )
+
+
+    async def _save_history(
+        self,
+        input_type: str,
+        filename: str | None,
+        result: ProofreadResult,
+        tokens_used: int,
+        processing_time_ms: float,
+        user_id: str | None,
+    ) -> None:
+        """Ghi nhận lịch sử và chỉ số điểm rà soát vào CSDL async."""
+        try:
+            breakdown = result.score_breakdown
+            spelling_score = breakdown.pillars["spelling"].score if breakdown else result.score
+            format_score = breakdown.pillars["format"].score if breakdown else 10.0
+            glossary_score = breakdown.pillars["glossary"].score if breakdown else 10.0
+            consistency_score = breakdown.pillars["consistency"].score if breakdown else 10.0
+
+            async with db_session() as session:
+                history = ProofreadHistory(
+                    filename=filename,
+                    input_type=input_type,
+                    overall_score=result.score,
+                    spelling_score=spelling_score,
+                    format_score=format_score,
+                    glossary_score=glossary_score,
+                    consistency_score=consistency_score,
+                    total_errors=result.total_errors,
+                    tokens_used=tokens_used,
+                    processing_time_ms=processing_time_ms,
+                    user_id=user_id or "anonymous_user",
+                )
+                session.add(history)
+                await session.commit()
+        except Exception as e:
+            logger.error(f"Failed to record proofread history in DB: {e}")
+
 
 
     def _clean_document_text(self, text: str) -> str:

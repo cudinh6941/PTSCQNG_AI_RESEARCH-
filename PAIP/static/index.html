@@ -240,25 +240,80 @@
 
     <!-- RIGHT PANEL: AI Inspector & Error Corrections -->
     <section class="panel inspector-panel">
-      <!-- Score & Summary Banner -->
+      <!-- Score & Summary Banner with 4-Pillar Scorecard -->
       <div class="score-banner">
-        <div class="score-circle-box">
-          <svg viewBox="0 0 36 36" style="width: 68px; height: 68px; transform: rotate(-90deg);">
-            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none"
-              stroke="rgba(255, 255, 255, 0.08)" stroke-width="3.5" />
-            <path id="scoreProgressPath"
-              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none"
-              stroke="#10b981" stroke-width="3.5" stroke-dasharray="100, 100"
-              style="transition: stroke-dasharray 0.8s ease, stroke 0.4s ease;" />
-          </svg>
-          <div class="score-number" id="scoreValue">--</div>
+        <div class="score-main-row">
+          <div class="score-circle-box">
+            <svg viewBox="0 0 36 36" style="width: 64px; height: 64px; transform: rotate(-90deg);">
+              <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none"
+                stroke="rgba(255, 255, 255, 0.08)" stroke-width="3.5" />
+              <path id="scoreProgressPath"
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none"
+                stroke="#10b981" stroke-width="3.5" stroke-dasharray="100, 100"
+                style="transition: stroke-dasharray 0.8s ease, stroke 0.4s ease;" />
+            </svg>
+            <div class="score-number" id="scoreValue">--</div>
+          </div>
+
+          <div class="score-details">
+            <div class="score-title-row">
+              <h3 id="scoreTitle">Sẵn Sàng Phân Tích</h3>
+              <span class="publish-badge" id="publishReadyBadge" style="display: none;">ĐỦ ĐIỀU KIỆN PHÁT HÀNH</span>
+            </div>
+            <div class="score-summary-text" id="scoreSummary">
+              Nhập văn bản hoặc tải file lên, sau đó bấm "Bắt Đầu Rà Soát" để AI đánh giá toàn diện theo 4 trụ cột chất lượng.
+            </div>
+          </div>
         </div>
 
-        <div class="score-details">
-          <h3 id="scoreTitle">Sẵn Sàng Phân Tích</h3>
-          <div class="score-summary-text" id="scoreSummary">
-            Nhập văn bản hoặc tải file lên, sau đó bấm "Bắt Đầu Rà Soát" để AI phát hiện lỗi chính tả, thể thức và ngữ
-            pháp.
+        <!-- 4-Pillar Breakdown Widget -->
+        <div class="scorecard-pillars-grid" id="scorecardPillarsGrid" style="display: none;">
+          <div class="pillar-card" id="pillarSpelling">
+            <div class="pillar-header">
+              <span class="pillar-icon">🔤</span>
+              <span class="pillar-name">Chính tả & Ngữ pháp</span>
+              <span class="pillar-score" id="scoreSpelling">10.0</span>
+            </div>
+            <div class="pillar-progress-track">
+              <div class="pillar-progress-fill" id="barSpelling" style="width: 100%;"></div>
+            </div>
+            <div class="pillar-detail-text" id="detailSpelling">Không phát hiện lỗi</div>
+          </div>
+
+          <div class="pillar-card" id="pillarFormat">
+            <div class="pillar-header">
+              <span class="pillar-icon">📐</span>
+              <span class="pillar-name">Thể thức NĐ 30</span>
+              <span class="pillar-score" id="scoreFormat">10.0</span>
+            </div>
+            <div class="pillar-progress-track">
+              <div class="pillar-progress-fill" id="barFormat" style="width: 100%;"></div>
+            </div>
+            <div class="pillar-detail-text" id="detailFormat">Chuẩn thể thức A4</div>
+          </div>
+
+          <div class="pillar-card" id="pillarGlossary">
+            <div class="pillar-header">
+              <span class="pillar-icon">🏢</span>
+              <span class="pillar-name">Thuật ngữ PTSC</span>
+              <span class="pillar-score" id="scoreGlossary">10.0</span>
+            </div>
+            <div class="pillar-progress-track">
+              <div class="pillar-progress-fill" id="barGlossary" style="width: 100%;"></div>
+            </div>
+            <div class="pillar-detail-text" id="detailGlossary">Chuẩn nhận diện thương hiệu</div>
+          </div>
+
+          <div class="pillar-card" id="pillarConsistency">
+            <div class="pillar-header">
+              <span class="pillar-icon">⚖️</span>
+              <span class="pillar-name">Nhất quán & Số liệu</span>
+              <span class="pillar-score" id="scoreConsistency">10.0</span>
+            </div>
+            <div class="pillar-progress-track">
+              <div class="pillar-progress-fill" id="barConsistency" style="width: 100%;"></div>
+            </div>
+            <div class="pillar-detail-text" id="detailConsistency">Số liệu & số hiệu nhất quán</div>
           </div>
         </div>
       </div>
@@ -270,8 +325,11 @@
         <button class="filter-pill" data-filter="grammar" id="filterGrammar">Ngữ pháp (0)</button>
         <button class="filter-pill" data-filter="word_choice" id="filterWordChoice">Dùng từ (0)</button>
         <button class="filter-pill" data-filter="punctuation" id="filterPunct">Dấu câu (0)</button>
-        <button class="filter-pill" data-filter="legal" id="filterLegal">⚖️ Pháp lý (0)</button>
+        <button class="filter-pill" data-filter="glossary" id="filterGlossary">🏢 Thuật ngữ (0)</button>
+        <button class="filter-pill" data-filter="consistency" id="filterConsistency">⚖️ Nhất quán (0)</button>
+        <button class="filter-pill" data-filter="legal" id="filterLegal">🏛️ Pháp lý (0)</button>
       </div>
+
 
       <!-- Error Cards Scroll Area -->
       <div class="error-cards-scroll" id="errorListContainer">

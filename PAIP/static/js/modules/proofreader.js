@@ -427,21 +427,81 @@ Kính đề nghị Ban lảnh đạo xem xét phê duyệt phương án bổ xun
   renderScoreDetails(result) {
     const scoreTitle = $('#scoreTitle');
     const scoreSummary = $('#scoreSummary');
+    const publishReadyBadge = $('#publishReadyBadge');
+    const scorecardPillarsGrid = $('#scorecardPillarsGrid');
     const score = result.score || 0;
     const count = result.total_errors || (result.errors ? result.errors.length : 0);
 
-    if (scoreTitle) {
-      if (score >= 9.0) {
-        scoreTitle.textContent = 'Văn Bản Rất Chuẩn Mực 🌟';
-      } else if (score >= 7.5) {
-        scoreTitle.textContent = `Phát Hiện ${count} Điểm Cần Chỉnh Sửa 📝`;
-      } else {
-        scoreTitle.textContent = `Cần Chuẩn Hóa Lại (${count} Lỗi) ⚠️`;
+    const breakdown = result.score_breakdown;
+
+    if (breakdown && breakdown.pillars) {
+      if (scorecardPillarsGrid) scorecardPillarsGrid.style.display = 'grid';
+
+      // Publish status badge
+      if (publishReadyBadge) {
+        publishReadyBadge.style.display = 'inline-block';
+        publishReadyBadge.className = 'publish-badge';
+        if (breakdown.is_publish_ready) {
+          publishReadyBadge.classList.add('ready');
+          publishReadyBadge.textContent = '✅ ' + (breakdown.rating_label || 'ĐỦ ĐIỀU KIỆN PHÁT HÀNH');
+        } else if (score >= 7.0) {
+          publishReadyBadge.classList.add('warning');
+          publishReadyBadge.textContent = '⚠️ ' + (breakdown.rating_label || 'CẦN HIỆU ĐÍNH');
+        } else {
+          publishReadyBadge.classList.add('danger');
+          publishReadyBadge.textContent = '⛔ ' + (breakdown.rating_label || 'CHƯA ĐẠT CHUẨN');
+        }
+      }
+
+      // Render 4 Pillars
+      this.renderPillar('Spelling', breakdown.pillars.spelling);
+      this.renderPillar('Format', breakdown.pillars.format);
+      this.renderPillar('Glossary', breakdown.pillars.glossary);
+      this.renderPillar('Consistency', breakdown.pillars.consistency);
+
+      if (scoreTitle) {
+        scoreTitle.textContent = `Chất Lượng: ${breakdown.overall_score}/10`;
+      }
+      if (scoreSummary) {
+        scoreSummary.textContent = breakdown.summary_recommendation || result.summary;
+      }
+    } else {
+      // Fallback
+      if (scorecardPillarsGrid) scorecardPillarsGrid.style.display = 'none';
+      if (publishReadyBadge) publishReadyBadge.style.display = 'none';
+
+      if (scoreTitle) {
+        if (score >= 9.0) {
+          scoreTitle.textContent = 'Văn Bản Rất Chuẩn Mực 🌟';
+        } else if (score >= 7.5) {
+          scoreTitle.textContent = `Phát Hiện ${count} Điểm Cần Chỉnh Sửa 📝`;
+        } else {
+          scoreTitle.textContent = `Cần Chuẩn Hóa Lại (${count} Lỗi) ⚠️`;
+        }
+      }
+
+      if (scoreSummary) {
+        scoreSummary.textContent = result.summary || `Phát hiện ${count} lỗi chính tả, ngữ pháp hoặc văn phong cần hoàn thiện.`;
       }
     }
+  },
 
-    if (scoreSummary) {
-      scoreSummary.textContent = result.summary || `Phát hiện ${count} lỗi chính tả, ngữ pháp hoặc văn phong cần hoàn thiện.`;
+  renderPillar(pillarKey, data) {
+    if (!data) return;
+    const scoreElem = $(`#score${pillarKey}`);
+    const barElem = $(`#bar${pillarKey}`);
+    const detailElem = $(`#detail${pillarKey}`);
+
+    if (scoreElem) scoreElem.textContent = (data.score !== undefined ? data.score.toFixed(1) : '10.0');
+
+    if (barElem) {
+      const pct = Math.max(0, Math.min(100, (data.score / 10.0) * 100));
+      barElem.style.width = `${pct}%`;
+      barElem.className = 'pillar-progress-fill ' + (data.status || 'pass');
+    }
+
+    if (detailElem) {
+      detailElem.textContent = data.details || 'Không phát hiện lỗi';
     }
   },
 
@@ -453,6 +513,8 @@ Kính đề nghị Ban lảnh đạo xem xét phê duyệt phương án bổ xun
       grammar: pendingErrors.filter(e => e.type === 'grammar').length,
       word_choice: pendingErrors.filter(e => e.type === 'word_choice').length,
       punctuation: pendingErrors.filter(e => e.type === 'punctuation').length,
+      glossary: pendingErrors.filter(e => e.type === 'glossary').length,
+      consistency: pendingErrors.filter(e => e.type === 'consistency').length,
       legal: pendingErrors.filter(e => e.type === 'legal').length,
       format: pendingErrors.filter(e => e.type === 'format').length
     };
@@ -462,6 +524,8 @@ Kính đề nghị Ban lảnh đạo xem xét phê duyệt phương án bổ xun
     const filterGrammar = $('#filterGrammar');
     const filterWordChoice = $('#filterWordChoice');
     const filterPunct = $('#filterPunct');
+    const filterGlossary = $('#filterGlossary');
+    const filterConsistency = $('#filterConsistency');
     const filterLegal = $('#filterLegal');
 
     if (filterAll) filterAll.textContent = `Tất cả (${counts.all})`;
@@ -469,11 +533,14 @@ Kính đề nghị Ban lảnh đạo xem xét phê duyệt phương án bổ xun
     if (filterGrammar) filterGrammar.textContent = `Ngữ pháp (${counts.grammar})`;
     if (filterWordChoice) filterWordChoice.textContent = `Dùng từ (${counts.word_choice})`;
     if (filterPunct) filterPunct.textContent = `Dấu câu (${counts.punctuation})`;
-    if (filterLegal) filterLegal.textContent = `⚖️ Pháp lý (${counts.legal})`;
+    if (filterGlossary) filterGlossary.textContent = `🏢 Thuật ngữ (${counts.glossary})`;
+    if (filterConsistency) filterConsistency.textContent = `⚖️ Nhất quán (${counts.consistency})`;
+    if (filterLegal) filterLegal.textContent = `🏛️ Pháp lý (${counts.legal})`;
 
     const highlightCount = $('#highlightCount');
     if (highlightCount) highlightCount.textContent = counts.all;
   },
+
 
   extractContextSnippet(fullText, targetWord) {
     if (!fullText || !targetWord) return '';
@@ -555,12 +622,49 @@ Kính đề nghị Ban lảnh đạo xem xét phê duyệt phương án bổ xun
         `;
       }
 
+      let conflictHtml = '';
+      if (err.side_a && err.side_b) {
+        const sideALabel = escapeHtml(err.side_a.label || 'Vế A');
+        const sideAVal = escapeHtml(err.side_a.value || '');
+        const sideALoc = err.side_a.location ? `<span class="conflict-side-location">${escapeHtml(err.side_a.location)}</span>` : '';
+
+        const sideBLabel = escapeHtml(err.side_b.label || 'Vế B');
+        const sideBVal = escapeHtml(err.side_b.value || '');
+        const sideBLoc = err.side_b.location ? `<span class="conflict-side-location">${escapeHtml(err.side_b.location)}</span>` : '';
+
+        conflictHtml = `
+          <div class="conflict-card-box">
+            <div class="conflict-grid">
+              <div class="conflict-side-box side-a">
+                <div class="conflict-side-header">
+                  <span class="conflict-side-tag">Vế A</span>
+                  ${sideALoc}
+                </div>
+                <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 2px;">${sideALabel}</div>
+                <div class="conflict-side-val">${sideAVal}</div>
+              </div>
+              <div class="conflict-vs-pill">⚡</div>
+              <div class="conflict-side-box side-b">
+                <div class="conflict-side-header">
+                  <span class="conflict-side-tag">Vế B</span>
+                  ${sideBLoc}
+                </div>
+                <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 2px;">${sideBLabel}</div>
+                <div class="conflict-side-val">${sideBVal}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
       html += `
         <div class="error-card" data-id="${err.id}" onclick="window.focusErrorInText('${err.id}')">
           <div class="error-card-header">
             <span class="error-badge ${badgeClass}">${typeLabel}</span>
             <span style="font-size: 0.72rem; color: var(--text-muted);">${this.getSeverityLabel(err.severity)}</span>
           </div>
+
+          ${conflictHtml}
 
           <div class="diff-box">
             <span class="diff-original">${original}</span>
@@ -780,9 +884,10 @@ Kính đề nghị Ban lảnh đạo xem xét phê duyệt phương án bổ xun
       grammar: 'Ngữ pháp',
       word_choice: 'Dùng từ',
       punctuation: 'Dấu câu',
-      legal: '⚖️ Pháp lý & Luật',
-      format: '📐 Thể thức NĐ30',
-      consistency: '🔍 Tính nhất quán'
+      glossary: '🏢 Thuật ngữ PTSC',
+      consistency: '⚖️ Nhất quán & Số liệu',
+      legal: '🏛️ Pháp lý & Luật',
+      format: '📐 Thể thức NĐ30'
     };
     return map[type] || 'Lỗi';
   },

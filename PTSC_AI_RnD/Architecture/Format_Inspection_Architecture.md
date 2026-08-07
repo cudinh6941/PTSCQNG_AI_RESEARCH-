@@ -56,17 +56,17 @@ Các quy định này được chuẩn hóa theo:
 
 ### 3.3. Quy chuẩn Thể thức Từng Khối Cấu trúc (Document Block Rules)
 
-| Thành phần văn bản | Font & Cỡ chữ chuẩn (pt) | Kiểu chữ (Style) | Căn lề (Alignment) |
-|---|---|---|---|
-| **Quốc hiệu** (*CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM*) | `12 - 13 pt` | In hoa, Đứng, **Đậm** | Căn giữa (Center) |
-| **Tiêu ngữ** (*Độc lập - Tự do - Hạnh phúc*) | `13 - 14 pt` | Chữ thường, Đứng, **Đậm**, có gạch ngang | Căn giữa (Center) |
-| **Tên cơ quan/đơn vị ban hành** (*PTSC QNG / TỔNG CÔNG TY PTSC*) | `12 - 13 pt` | In hoa, Đứng, **Đậm** | Căn giữa (Center) |
-| **Số, ký hiệu văn bản** (*Số: 43/TMCG-TKE*) | `13 pt` | Chữ thường, Đứng | Căn giữa theo tên đơn vị |
-| **Địa danh & Ngày tháng** (*Quảng Ngãi, ngày 06/08/2026*) | `13 - 14 pt` | Chữ thường, *Nghiêng* | Căn giữa theo Tiêu ngữ |
-| **Tên loại VB & Trích yếu** (*THƯ MỜI CHÀO GIÁ...*) | `14 - 15 pt` | In hoa, Đứng, **Đậm** | Căn giữa (Center) |
-| **Nội dung văn bản (Body)** | `13 - 14 pt` | Chữ thường, Đứng | **Bắt buộc Căn đều 2 bên (Justified)** |
-| **Chức danh người ký** (*GIÁM ĐỐC / TRƯỞNG PHÒNG*) | `13 - 14 pt` | In hoa, Đứng, **Đậm** | Căn giữa khối ký (Right-Center) |
-| **Nơi nhận (Distribution list)** | `11 - 12 pt` | In hoa/thường, Đứng/Nghiêng | Căn trái (Left) |
+| Thành phần văn bản                                               | Font & Cỡ chữ chuẩn (pt) | Kiểu chữ (Style)                         | Căn lề (Alignment)                     |
+| ---------------------------------------------------------------- | ------------------------ | ---------------------------------------- | -------------------------------------- |
+| **Quốc hiệu** (*CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM*)             | `12 - 13 pt`             | In hoa, Đứng, **Đậm**                    | Căn giữa (Center)                      |
+| **Tiêu ngữ** (*Độc lập - Tự do - Hạnh phúc*)                     | `13 - 14 pt`             | Chữ thường, Đứng, **Đậm**, có gạch ngang | Căn giữa (Center)                      |
+| **Tên cơ quan/đơn vị ban hành** (*PTSC QNG / TỔNG CÔNG TY PTSC*) | `12 - 13 pt`             | In hoa, Đứng, **Đậm**                    | Căn giữa (Center)                      |
+| **Số, ký hiệu văn bản** (*Số: 43/TMCG-TKE*)                      | `13 pt`                  | Chữ thường, Đứng                         | Căn giữa theo tên đơn vị               |
+| **Địa danh & Ngày tháng** (*Quảng Ngãi, ngày 06/08/2026*)        | `13 - 14 pt`             | Chữ thường, *Nghiêng*                    | Căn giữa theo Tiêu ngữ                 |
+| **Tên loại VB & Trích yếu** (*THƯ MỜI CHÀO GIÁ...*)              | `14 - 15 pt`             | In hoa, Đứng, **Đậm**                    | Căn giữa (Center)                      |
+| **Nội dung văn bản (Body)**                                      | `13 - 14 pt`             | Chữ thường, Đứng                         | **Bắt buộc Căn đều 2 bên (Justified)** |
+| **Chức danh người ký** (*GIÁM ĐỐC / TRƯỞNG PHÒNG*)               | `13 - 14 pt`             | In hoa, Đứng, **Đậm**                    | Căn giữa khối ký (Right-Center)        |
+| **Nơi nhận (Distribution list)**                                 | `11 - 12 pt`             | In hoa/thường, Đứng/Nghiêng              | Căn trái (Left)                        |
 
 ---
 

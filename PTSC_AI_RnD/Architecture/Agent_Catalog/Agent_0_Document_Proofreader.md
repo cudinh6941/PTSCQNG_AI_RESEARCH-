@@ -60,12 +60,15 @@ Upload hồ sơ (Word / PDF) hoặc paste text trực tiếp
 - Không cần database, không cần RAG
 - **Xây dựng được core infrastructure (FastAPI + LLM Service) cho các agent sau**
 
-## Mở rộng tương lai
+## Mở rộng & Lộ trình Tiến hóa
+> **Kế hoạch triển khai chi tiết:** Xem [[PAIP_Implementation_Plan_Agent0_Evolution]]
+
 - ✅ Tích hợp Rule Engine & Từ điển chuyên ngành (Glossary) — **Đã hoàn thành**
-- ✅ Tích hợp Database (SQLite/PostgreSQL) — **Đã hoàn thành**
-- 🔜 Check tính nhất quán văn bản (Consistency Check): Đối soát số hiệu, số tiền, ngày tháng, tên đối tác — Xem [[Consistency_Check_Architecture]]
-- 🔜 Check thể thức & định dạng theo chuẩn Nghị định 30/2020/NĐ-CP (Căn lề, Font Times New Roman, Cỡ chữ, Căn đều Justified, 1-Click Auto-Format) — Xem [[Format_Inspection_Architecture]]
-- 🔜 So sánh với template chuẩn
+- ✅ Thẩm định thể thức chuẩn Nghị định 30 & 1-Click Auto-Format — **Đã hoàn thành**
+- 🔜 **Phase 1:** Nền tảng Database Async & Bảng chấm điểm 4 Trụ cột — **Đang triển khai**
+- 🔜 **Phase 2:** Đối soát tính nhất quán & số liệu (Consistency Check) — Xem [[Consistency_Check_Architecture]]
+- 🔜 **Phase 3:** Hệ thống Tự học & Phản hồi (Feedback & Self-Learning) — Xem [[Feedback_Learning_Architecture]]
+
 
 ## Chế độ Kiểm tra (Modes)
 

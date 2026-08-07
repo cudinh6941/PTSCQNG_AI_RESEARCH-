@@ -309,23 +309,25 @@
     "do_not_translate": true,
     "description": "Tổng Công ty mẹ — thành viên Tập đoàn Dầu khí Việt Nam (Petrovietnam)."
   },
-  "PTSC Quảng Ngãi": {
-    "term": "PTSC Quảng Ngãi",
-    "full_name_en": "",
-    "full_name_vi": "tên riêng công ty",
-    "domain": "General",
-    "standard_case": "PTSC Quảng Ngãi",
+  "PTSC QNG": {
+    "term": "PTSC QNG",
+    "full_name_en": "PTSC Quang Ngai Joint Stock Company",
+    "full_name_vi": "Công ty Cổ phần Dịch vụ Dầu khí Quảng Ngãi PTSC",
+    "domain": "Corporate",
+    "standard_case": "PTSC QNG",
     "incorrect_variants": [
-      "PTSCQNG",
-      "PTSC QNG",
-      "PTSCQN",
       "PTSC-QNg",
+      "ptsc-qng",
+      "PTSC QNg",
       "ptsc qng",
-      "PTSC Qng"
+      "Ptsc Qng"
     ],
-    "synonyms": [],
-    "do_not_translate": false,
-    "description": ""
+    "synonyms": [
+      "PTSC Quảng Ngãi",
+      "Công ty PTSC Quảng Ngãi"
+    ],
+    "do_not_translate": true,
+    "description": "Công ty Cổ phần Dịch vụ Dầu khí Quảng Ngãi PTSC (Đơn vị thành viên của PTSC)."
   },
   "QA/QC": {
     "term": "QA/QC",

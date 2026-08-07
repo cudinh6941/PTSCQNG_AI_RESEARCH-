@@ -21,6 +21,7 @@ from .base import RuleResult, RuleViolation
 from .context import RuleContext
 from .loaders.json_loader import GlossaryItem, GlossaryLoader
 from .rules.glossary_rule import GlossaryRule
+from .rules.consistency_rule import ConsistencyRule
 
 
 # Đường dẫn mặc định đến thư mục data
@@ -33,7 +34,7 @@ class RuleEngine:
 
     Chức năng chính:
     - Quản lý vòng đời: init → load → compile → evaluate.
-    - Hợp nhất kết quả từ nhiều Rules.
+    - Hợp nhất kết quả từ nhiều Rules (Glossary Level 1, Consistency Level 2).
     - Hot-reload: Nạp lại dữ liệu mà không cần restart server.
     - CRUD proxy: Cung cấp API quản lý từ điển cho Router/UI.
     """
@@ -45,6 +46,7 @@ class RuleEngine:
         # Khởi tạo Loader & Rules
         self._glossary_loader = GlossaryLoader(data_dir=self._data_dir)
         self._glossary_rule = GlossaryRule(loader=self._glossary_loader)
+        self._consistency_rule = ConsistencyRule()
 
     @property
     def is_loaded(self) -> bool:
@@ -71,7 +73,8 @@ class RuleEngine:
         self._glossary_rule.compile()
         self._is_loaded = True
         logger.info(
-            f"RuleEngine: Ready — {self._glossary_loader.count} glossary terms loaded."
+            f"RuleEngine: Ready — {self._glossary_loader.count} glossary terms loaded, "
+            f"ConsistencyRule active."
         )
 
     def reload(self) -> dict:
@@ -103,9 +106,10 @@ class RuleEngine:
 
         Luồng xử lý:
         1. Chạy GlossaryRule (Level 1 — Siêu tốc).
-        2. (Future) Chạy FormatRule (Level 2).
-        3. (Future) Chạy ProcessRule (Level 3).
-        4. Hợp nhất kết quả.
+        2. Chạy ConsistencyRule (Level 2 — Đối soát chéo thực thể).
+        3. (Future) Chạy FormatRule (Level 2/3).
+        4. (Future) Chạy ProcessRule (Level 3).
+        5. Hợp nhất kết quả.
 
         Args:
             context: RuleContext chứa text + metadata.
@@ -121,18 +125,24 @@ class RuleEngine:
         # ── Level 1: Glossary ─────────────────────────────
         glossary_result = self._glossary_rule.evaluate(context)
 
-        # ── Level 2: Format (Future) ──────────────────────
-        # format_result = self._format_rule.evaluate(context)
+        # ── Level 2: Consistency & Cross-Audit ────────────
+        consistency_result = self._consistency_rule.evaluate(context)
 
         # ── Level 3: Process (Future) ─────────────────────
         # process_result = self._process_rule.evaluate(context)
 
         # ── Merge Results ─────────────────────────────────
+        merged_violations = glossary_result.violations + consistency_result.violations
+        combined_prompt_injection = (
+            (glossary_result.prompt_injection or "")
+            + ("\n" + consistency_result.prompt_injection if consistency_result.prompt_injection else "")
+        ).strip()
+
         merged = RuleResult(
-            violations=glossary_result.violations,
+            violations=merged_violations,
             detected_terms=glossary_result.detected_terms,
             whitelist_terms=glossary_result.whitelist_terms,
-            prompt_injection=glossary_result.prompt_injection,
+            prompt_injection=combined_prompt_injection,
             processing_time_ms=(time.perf_counter() - start_time) * 1000,
         )
 

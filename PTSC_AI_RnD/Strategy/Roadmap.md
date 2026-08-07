@@ -3,7 +3,7 @@
 ## Solo Developer Timeline
 
 ```
-Tuần 1-2     → Agent 0 — Document Proofreader     ← Xây core infrastructure
+Tuần 1-2     → Agent 0 — Document Proofreader     ← Xây core infrastructure (Xem [[PAIP_Implementation_Plan_Agent0_Evolution]])
 Tháng 1-2    → Agent 1 — Meeting Assistant         ← Quick win, demo ngay
 Tháng 2-3    → Agent 2 — Requirement Reviewer      ← Reuse 70% từ Agent 0+1
 Tháng 3-4    → Agent 3 — Procurement Assistant     ← Giá trị rõ cho mua sắm
@@ -11,6 +11,7 @@ Tháng 5-7    → Agent 4 — Knowledge Assistant       ← Xây RAG pipeline
 Tháng 7-9    → Agent 5 — HSEQ Assistant            ← Reuse RAG từ Agent 4
 Tháng 10+    → Agent 6 — IT Assistant              ← Chỉ khi có thêm người
 ```
+
 
 ## Development Phases
 

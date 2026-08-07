@@ -30,7 +30,8 @@ class RuleSeverity(str, Enum):
 class RuleType(str, Enum):
     """Phân loại nhóm Rule."""
     GLOSSARY = "glossary"           # Level 1: Từ điển & viết tắt
-    FORMAT = "format"               # Level 2: Thể thức văn bản
+    CONSISTENCY = "consistency"     # Level 2: Nhất quán & Đối soát số liệu
+    FORMAT = "format"               # Level 2/3: Thể thức văn bản
     PROCESS = "process"             # Level 3: Quy trình nghiệp vụ
 
 
@@ -41,10 +42,10 @@ class RuleViolation(BaseModel):
     """Một vi phạm / lỗi cụ thể được phát hiện bởi Rule Engine."""
 
     rule_id: str = Field(
-        description="Mã định danh vi phạm (VD: GLOSSARY_INCORRECT_VARIANT)",
+        description="Mã định danh vi phạm (VD: GLOSSARY_INCORRECT_VARIANT, CA-001)",
     )
     rule_type: RuleType = Field(
-        description="Nhóm rule phát hiện lỗi (glossary / format / process)",
+        description="Nhóm rule phát hiện lỗi (glossary / consistency / format / process)",
     )
     severity: RuleSeverity = Field(
         default=RuleSeverity.WARNING,
@@ -63,6 +64,14 @@ class RuleViolation(BaseModel):
     position: dict | None = Field(
         default=None,
         description="Vị trí vi phạm: {start_char, end_char, line} (nếu xác định được)",
+    )
+    side_a: dict | None = Field(
+        default=None,
+        description="Vế A đối soát (VD: số tiền bằng số / số hiệu header)",
+    )
+    side_b: dict | None = Field(
+        default=None,
+        description="Vế B đối soát (VD: số tiền bằng chữ / số hiệu phụ lục)",
     )
 
 
