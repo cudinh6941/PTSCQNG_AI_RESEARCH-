@@ -207,13 +207,30 @@ PAIP/core/rule_engine/
 
 ## 7. Lộ trình Triển khai (Roadmap)
 
-* [ ] **Phase 1: Foundation (Kho Từ điển & Core Engine)**
+* [x] **Phase 1: Foundation (Kho Từ điển & Core Engine)** ✅ Hoàn thành
   * Xây dựng `core/rule_engine/engine.py`, `base.py`, `context.py`.
-  * Xây dựng `glossary_rule.py` (Aho-Corasick/Regex) + `json_loader.py` nạp file `glossary.json`.
+  * Xây dựng `glossary_rule.py` (Regex) + `db_loader.py` nạp từ CSDL.
   * Tích hợp vào `Agent_0_Proofreader` (Pre-scan + Whitelist + Glossary Injection + Result Merge).
+  * Tích hợp CSDL SQLite/PostgreSQL cho toàn bộ CRUD từ điển.
 * [ ] **Phase 2: Management & Import UI**
   * Xây dựng API CRUD `/api/v1/rules/dictionary` và endpoint `/import-excel`.
   * Xây dựng giao diện Web Admin quản lý từ điển & nút đề xuất từ phía End-user.
-* [ ] **Phase 3: Structural & Process Expansion**
-  * Xây dựng `format_rule.py` kiểm tra mẫu văn bản hành chính (Nghị định 30).
-  * Xây dựng `process_rule.py` đối soát quy trình nghiệp vụ chuyên sâu.
+* [ ] **Phase 3: Consistency Check (Kiểm tra Tính nhất quán)**
+  * Xây dựng `extractors/` — Bóc tách thực thể (Số hiệu, Ngày tháng, Số tiền, Tên đối tác).
+  * Xây dựng `auditors/` — Đối soát chéo tự động (8 quy tắc CA-001 → CA-008).
+  * Xây dựng `consistency_rule.py` — Điều phối pipeline 3 bước.
+  * Tích hợp vào `RuleEngine` pipeline và Agent 0 Prompt.
+  * Chi tiết kiến trúc: [[Consistency_Check_Architecture]]
+* [ ] **Phase 4: Feedback & Self-Learning (Phản hồi & AI Tự học)**
+  * Xây dựng UI phản hồi (✅❌✏️) trên từng lỗi + nút [Báo lỗi bỏ sót].
+  * Xây dựng backend API & bảng CSDL (`user_feedback`, `user_corrections`, `experience_memory`).
+  * Cơ chế Instant Learning: Thêm Whitelist tức thì + Tạo Custom Rule.
+  * Cơ chế Experience Memory: Few-shot injection + Crowd Verification.
+* [ ] **Phase 5: Format & Layout Inspection (Thể thức & Trình bày Nghị định 30)**
+  * Xây dựng `DocxFormatInspector` đọc trực tiếp XML/AST file Word bằng `python-docx`.
+  * Xây dựng bộ quy tắc kiểm tra lề trang A4 (Margins $3.0 - 1.5 - 2.0 - 2.0\text{ cm}$), Font Times New Roman, Cỡ chữ, Căn đều 2 bên (Justified), Giãn dòng 1.15 lines.
+  * Tích hợp `format_rule.py` (Mã FMT-001 → FMT-008) vào `RuleEngine` Level 2.
+  * Xây dựng tính năng cao cấp: **1-Click Auto-Format Document** (Tự động chuẩn hóa file Word và xuất bản mới).
+  * Chi tiết kiến trúc: [[Format_Inspection_Architecture]]
+* [ ] **Phase 6: Process & Compliance Expansion**
+  * Xây dựng `process_rule.py` đối soát quy trình mua sắm, thẩm quyền phê duyệt theo hạn mức tài chính.

@@ -61,11 +61,21 @@ Upload hồ sơ (Word / PDF) hoặc paste text trực tiếp
 - **Xây dựng được core infrastructure (FastAPI + LLM Service) cho các agent sau**
 
 ## Mở rộng tương lai
-- Check theo chuẩn văn bản hành chính PTSC
-- Check format (font, cỡ chữ, margin)
-- Check thuật ngữ chuyên ngành (Oil & Gas)
-- So sánh với template chuẩn
+- ✅ Tích hợp Rule Engine & Từ điển chuyên ngành (Glossary) — **Đã hoàn thành**
+- ✅ Tích hợp Database (SQLite/PostgreSQL) — **Đã hoàn thành**
+- 🔜 Check tính nhất quán văn bản (Consistency Check): Đối soát số hiệu, số tiền, ngày tháng, tên đối tác — Xem [[Consistency_Check_Architecture]]
+- 🔜 Check thể thức & định dạng theo chuẩn Nghị định 30/2020/NĐ-CP (Căn lề, Font Times New Roman, Cỡ chữ, Căn đều Justified, 1-Click Auto-Format) — Xem [[Format_Inspection_Architecture]]
+- 🔜 So sánh với template chuẩn
+
+## Chế độ Kiểm tra (Modes)
+
+| Mode | Tên | Mục tiêu |
+|---|---|---|
+| `standard` | Tiêu chuẩn | Chính tả, dấu thanh, phụ âm, dấu câu |
+| `formal` | Trang trọng / Công văn | Thể thức NĐ30, văn phong hành chính chuẩn mực |
+| `strict` | Pháp lý & Số liệu | Đối chiếu số tiền số/chữ, tính nhất quán điều khoản |
+| `legal` | Thẩm định Pháp lý | Tra cứu luật thời gian thực (Google Search Grounding) |
 
 ## Reuse
-- **Xây nền tảng:** FastAPI + LLM Service + Document Reader
+- **Xây nền tảng:** FastAPI + LLM Service + Document Reader + Rule Engine + Database
 - **Các agent sau reuse:** Toàn bộ core infrastructure
