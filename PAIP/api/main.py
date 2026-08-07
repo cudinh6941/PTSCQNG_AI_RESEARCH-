@@ -22,7 +22,9 @@ from core.common.schemas import HealthResponse
 # Import agent routers
 from agents.agent_0_proofreader.router import router as proofreader_router
 from api.rules_router import router as rules_router
+from api.format_router import router as format_router
 from core.rule_engine import rule_engine
+
 
 
 @asynccontextmanager
@@ -88,6 +90,8 @@ async def root():
 
 app.include_router(proofreader_router)
 app.include_router(rules_router)
+app.include_router(format_router)
+
 
 # Future agents:
 # from agents.agent_1_meeting.router import router as meeting_router

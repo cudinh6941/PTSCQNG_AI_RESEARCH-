@@ -334,10 +334,12 @@ body {
 }
 
 /* Custom Prompt Input */
-.custom-prompt-item {
+.custom-prompt-item,
+.custom-prompt-group {
   flex: 1;
   min-width: 280px;
 }
+
 
 .input-with-icon {
   position: relative;

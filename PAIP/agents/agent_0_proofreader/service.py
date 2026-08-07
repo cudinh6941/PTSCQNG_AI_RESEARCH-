@@ -14,8 +14,10 @@ from core.document import document_reader
 from core.llm import llm_service
 from core.rule_engine import RuleContext, rule_engine
 from core.rule_engine.base import RuleType
+from core.document.format_inspector import docx_format_inspector
 
 from .prompts import SYSTEM_PROMPT, build_user_prompt
+
 from .schemas import ErrorType, ProofreadError, ProofreadResponse, ProofreadResult, Severity
 
 
@@ -179,7 +181,16 @@ class ProofreaderService:
             department=department,
         )
         response.extracted_text = cleaned_text
+
+        # Tự động quét vi phạm thể thức, căn lề, font chữ nếu là file Word (.docx)
+        if filename.lower().endswith(".docx"):
+            try:
+                response.format_report = docx_format_inspector.inspect(file_content)
+            except Exception as e:
+                logger.error(f"Format inspection error for {filename}: {e}")
+
         return response
+
 
     def _merge_rule_engine_results(
         self,

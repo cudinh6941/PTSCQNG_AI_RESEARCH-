@@ -79,4 +79,6 @@ class ProofreadResponse(AIResponse):
     """Response trả về cho client."""
     result: ProofreadResult | None = Field(default=None, description="Kết quả kiểm tra")
     extracted_text: str | None = Field(default=None, description="Nội dung text đã trích xuất từ file (nếu upload)")
+    format_report: dict | None = Field(default=None, description="Báo cáo vi phạm thể thức, căn lề, font chữ (file Word)")
+
 
