@@ -52,6 +52,11 @@ class ConsistencyRule(BaseRule):
         prompt_lines: list[str] = []
 
         for c in conflicts:
+            if c.rule_id == "CALCULATOR_SIDECAR":
+                # Đây không phải lỗi, đây là dữ liệu cung cấp cho LLM (Calculator Sidecar)
+                prompt_lines.append(c.description)
+                continue
+
             pos = None
             if c.span and c.span != (0, 0):
                 pos = {"start_char": c.span[0], "end_char": c.span[1]}
@@ -70,15 +75,16 @@ class ConsistencyRule(BaseRule):
                 )
             )
 
+            # Cảnh báo các rule còn lại (như CA-001, CA-002, ...)
             prompt_lines.append(f"- [{c.rule_id}] {c.description}")
 
         # 4. Tạo prompt injection nếu có xung đột cần lưu ý
         prompt_injection = ""
         if prompt_lines:
             prompt_injection = (
-                "\n[CẢNH BÁO XUNG ĐỘT THÔNG TIN NỘI TẠI — HỆ THỐNG ĐÃ PHÁT HIỆN]:\n"
+                "\n[CONTEXT BỔ SUNG TỪ HỆ THỐNG RULE ENGINE — HÃY SỬ DỤNG THÔNG TIN NÀY]:\n"
                 + "\n".join(prompt_lines)
-                + "\n(Lưu ý giữ nguyên hoặc xử lý các điểm xung đột này theo đúng ngữ cảnh thực tế).\n"
+                + "\n\n"
             )
 
         elapsed_ms = (time.perf_counter() - start_time) * 1000

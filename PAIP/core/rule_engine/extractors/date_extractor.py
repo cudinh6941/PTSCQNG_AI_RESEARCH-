@@ -14,15 +14,16 @@ from .base_extractor import BaseEntityExtractor, EntityType, ExtractedEntity
 class DateExtractor(BaseEntityExtractor):
     """Bóc tách các mốc ngày tháng năm và phân loại vai trò (Ngày ban hành, Hạn nộp, v.v.)."""
 
-    # Pattern 1: ngày DD tháng MM năm YYYY (hoặc DD/MM/YYYY)
+    # Pattern 1: (Thứ ..., ) ngày DD tháng MM năm YYYY
     _FULL_TEXT_DATE = re.compile(
-        r"(?:ngày|Ngày)\s*(\d{1,2})\s*tháng\s*(\d{1,2})\s*năm\s*(\d{4})",
+        r"(?:(Thứ\s+(?:Hai|Ba|Tư|Năm|Sáu|Bảy|7|6|5|4|3|2)|Chủ\s*nhật|CN)[,\s]*)?(?:ngày|Ngày)\s*(\d{1,2})\s*tháng\s*(\d{1,2})\s*năm\s*(\d{4})",
         re.IGNORECASE | re.UNICODE,
     )
 
-    # Pattern 2: DD/MM/YYYY hoặc DD-MM-YYYY hoặc DD.MM.YYYY
+    # Pattern 2: (Thứ ..., ) DD/MM/YYYY
     _SLASH_DATE = re.compile(
-        r"\b(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})\b",
+        r"(?:(Thứ\s+(?:Hai|Ba|Tư|Năm|Sáu|Bảy|7|6|5|4|3|2)|Chủ\s*nhật|CN)[,\s]*)?\b(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})\b",
+        re.IGNORECASE | re.UNICODE,
     )
 
     @property
@@ -37,31 +38,40 @@ class DateExtractor(BaseEntityExtractor):
         total_len = len(text)
         found_spans: set[tuple[int, int]] = set()
 
-        def add_date(raw_str: str, d: int, m: int, y: int, span: tuple[int, int]):
+        def add_date(raw_str: str, d: int, m: int, y: int, span: tuple[int, int], dow_text: str | None = None):
             if span in found_spans:
                 return
+            
+            is_valid_date = True
+            dt_val = None
             try:
                 dt_val = datetime.date(y, m, d)
             except ValueError:
-                # Ngày không hợp lệ (ví dụ: ngày 31 tháng 2)
-                return
+                is_valid_date = False
 
             found_spans.add(span)
             start_char, end_char = span
 
             # Xác định ngữ cảnh & vai trò qua tiền tố ngữ cảnh (prefix_ctx)
             prefix_ctx = text[max(0, start_char - 80):start_char].lower()
+            
+            # Cắt bớt phần trước dấu chấm hoặc xuống dòng gần nhất để tránh lấy nhầm ngữ cảnh câu trước
+            last_dot = max(prefix_ctx.rfind("."), prefix_ctx.rfind("\n"))
+            if last_dot != -1:
+                prefix_ctx = prefix_ctx[last_dot + 1:]
 
             role = "general"
             section = "body"
 
-            if any(kw in prefix_ctx for kw in ("hạn nộp", "hạn chót", "thời hạn nộp", "trước ngày", "chậm nhất ngày", "chậm nhất")):
+            check_str = (prefix_ctx + raw_str).lower()
+
+            if any(kw in check_str for kw in ("hạn nộp", "hạn chót", "thời hạn nộp", "trước ngày", "chậm nhất ngày", "chậm nhất")):
                 role = "deadline"
-            elif any(kw in prefix_ctx for kw in ("hiệu lực từ", "bắt đầu từ", "kể từ ngày")):
+            elif any(kw in check_str for kw in ("hiệu lực từ", "bắt đầu từ", "kể từ ngày")):
                 role = "effective_start"
-            elif any(kw in prefix_ctx for kw in ("đến ngày", "đến hết ngày", "kết thúc ngày", "nghiệm thu ngày", "thanh lý ngày")):
+            elif any(kw in check_str for kw in ("đến ngày", "đến hết ngày", "kết thúc ngày", "nghiệm thu ngày", "thanh lý ngày")):
                 role = "completion_date"
-            elif any(kw in prefix_ctx for kw in ("quảng ngãi, ngày", "hà nội, ngày", "ngày ban hành", "ngày ký", "ngày lập")) or start_char < min(150, total_len * 0.20):
+            elif any(kw in check_str for kw in ("quảng ngãi, ngày", "hà nội, ngày", "tp.hcm, ngày", "tp hcm, ngày", "ngày ban hành", "ngày ký", "ngày lập", "lập ngày")) or start_char < min(150, total_len * 0.20):
                 role = "issued_date"
                 section = "header"
 
@@ -73,7 +83,7 @@ class DateExtractor(BaseEntityExtractor):
                 ExtractedEntity(
                     entity_type=EntityType.DATE,
                     raw_text=raw_str,
-                    normalized_value=dt_val.isoformat(),
+                    normalized_value=dt_val.isoformat() if dt_val else None,
                     span=span,
                     context_snippet=snippet,
                     section=section,
@@ -83,23 +93,27 @@ class DateExtractor(BaseEntityExtractor):
                         "month": m,
                         "year": y,
                         "role": role,
+                        "is_valid_date": is_valid_date,
+                        "day_of_week_text": dow_text,
                     },
                 )
             )
 
         # 1. Quét text date (ngày ... tháng ... năm ...)
         for match in self._FULL_TEXT_DATE.finditer(text):
-            d = int(match.group(1))
-            m = int(match.group(2))
-            y = int(match.group(3))
-            add_date(match.group(0), d, m, y, match.span())
+            dow = match.group(1)
+            d = int(match.group(2))
+            m = int(match.group(3))
+            y = int(match.group(4))
+            add_date(match.group(0), d, m, y, match.span(), dow)
 
         # 2. Quét slash date (DD/MM/YYYY)
         for match in self._SLASH_DATE.finditer(text):
-            d = int(match.group(1))
-            m = int(match.group(2))
-            y = int(match.group(3))
-            add_date(match.group(0), d, m, y, match.span())
+            dow = match.group(1)
+            d = int(match.group(2))
+            m = int(match.group(3))
+            y = int(match.group(4))
+            add_date(match.group(0), d, m, y, match.span(), dow)
 
         # Sắp xếp theo vị trí xuất hiện
         results.sort(key=lambda x: x.span[0])

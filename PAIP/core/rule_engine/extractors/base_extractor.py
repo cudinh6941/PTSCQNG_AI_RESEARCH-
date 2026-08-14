@@ -16,8 +16,8 @@ class EntityType(str, Enum):
     DOCUMENT_CODE = "document_code"      # Số hiệu VB: 43/TMCG-TKE, QĐ-2026/01
     MONEY = "money"                      # Tiền số & tiền chữ
     DATE = "date"                        # Ngày tháng năm: 06/08/2026, ngày 06 tháng 08 năm 2026
+    DURATION = "duration"                # Thời lượng: 3 ngày, 6 tháng, 1 năm
     PERCENTAGE = "percentage"            # Tỷ lệ %: 30%, 50%
-    CLAUSE_REF = "clause_ref"            # Tham chiếu điều khoản: Điều 15, Khoản 2 Điều 10
     PARTY = "party"                      # Tên đối tác / bên ký
 
 
@@ -58,12 +58,8 @@ class EntityMatrix(BaseModel):
     document_codes: list[ExtractedEntity] = Field(default_factory=list)
     monies: list[ExtractedEntity] = Field(default_factory=list)
     dates: list[ExtractedEntity] = Field(default_factory=list)
+    durations: list[ExtractedEntity] = Field(default_factory=list)
     percentages: list[ExtractedEntity] = Field(default_factory=list)
-    clause_refs: list[ExtractedEntity] = Field(default_factory=list)
-    actual_clauses: list[int] = Field(
-        default_factory=list,
-        description="Danh sách các số Điều thực tế có mặt trong văn bản (VD: [1, 2, ..., 10])",
-    )
     parties: list[ExtractedEntity] = Field(default_factory=list)
 
     @property
@@ -73,6 +69,7 @@ class EntityMatrix(BaseModel):
             len(self.document_codes)
             + len(self.monies)
             + len(self.dates)
+            + len(self.durations)
             + len(self.percentages)
             + len(self.clause_refs)
             + len(self.parties)

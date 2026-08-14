@@ -11,8 +11,8 @@ from .base_extractor import (
 from .document_code import DocumentCodeExtractor
 from .money_extractor import MoneyExtractor, vietnamese_words_to_number
 from .date_extractor import DateExtractor
+from .duration_extractor import DurationExtractor
 from .percentage_extractor import PercentageExtractor
-from .clause_ref_extractor import ClauseRefExtractor
 
 
 def extract_entity_matrix(text: str) -> EntityMatrix:
@@ -28,23 +28,21 @@ def extract_entity_matrix(text: str) -> EntityMatrix:
     doc_code_extractor = DocumentCodeExtractor()
     money_extractor = MoneyExtractor()
     date_extractor = DateExtractor()
+    duration_extractor = DurationExtractor()
     percentage_extractor = PercentageExtractor()
-    clause_ref_extractor = ClauseRefExtractor()
 
     doc_codes = doc_code_extractor.extract(text)
     monies = money_extractor.extract(text)
     dates = date_extractor.extract(text)
+    durations = duration_extractor.extract(text)
     percentages = percentage_extractor.extract(text)
-    clause_refs = clause_ref_extractor.extract(text)
-    actual_clauses = clause_ref_extractor.extract_actual_clauses(text)
 
     return EntityMatrix(
         document_codes=doc_codes,
         monies=monies,
         dates=dates,
+        durations=durations,
         percentages=percentages,
-        clause_refs=clause_refs,
-        actual_clauses=actual_clauses,
     )
 
 
@@ -57,7 +55,7 @@ __all__ = [
     "MoneyExtractor",
     "vietnamese_words_to_number",
     "DateExtractor",
+    "DurationExtractor",
     "PercentageExtractor",
-    "ClauseRefExtractor",
     "extract_entity_matrix",
 ]

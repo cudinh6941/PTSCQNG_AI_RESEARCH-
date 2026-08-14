@@ -7,6 +7,7 @@ Flow: Nhận text/file → Gọi LLM → Parse kết quả → Trả về struct
 import json
 import re
 import time
+import unicodedata
 
 from core.common.logger import logger
 from core.common.schemas import LLMProvider
@@ -330,6 +331,8 @@ class ProofreaderService:
         cleaned = re.sub(r'QN-[A-Z0-9-]+\s*\n\s*NHL:\s*\d{2}/\d{2}/\d{4}\s*\n?', '', text)
         # Normalize excessive newlines
         cleaned = re.sub(r'\n{3,}', '\n\n', cleaned)
+        # Chuẩn hóa Unicode phân mảnh (NFD) thành dựng sẵn (NFC) để Regex chạy đúng
+        cleaned = unicodedata.normalize("NFC", cleaned)
         return cleaned.strip()
 
     def _parse_llm_response(self, content: str) -> ProofreadResult:

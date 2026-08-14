@@ -6,8 +6,9 @@ from .base_auditor import AuditConflict, BaseAuditor
 from .code_auditor import DocumentCodeAuditor
 from .money_auditor import MoneyAuditor
 from .timeline_auditor import TimelineAuditor
+from .date_auditor import DateAuditor
 from .percentage_auditor import PercentageAuditor
-from .clause_auditor import ClauseAuditor
+from .financial_math_auditor import FinancialMathAuditor
 from ..extractors.base_extractor import EntityMatrix
 
 
@@ -25,9 +26,10 @@ def run_cross_audit(matrix: EntityMatrix, full_text: str = "") -> list[AuditConf
     auditors: list[BaseAuditor] = [
         DocumentCodeAuditor(),
         MoneyAuditor(),
+        DateAuditor(),
         TimelineAuditor(),
         PercentageAuditor(),
-        ClauseAuditor(),
+        FinancialMathAuditor(),
     ]
 
     all_conflicts: list[AuditConflict] = []
@@ -48,8 +50,9 @@ __all__ = [
     "BaseAuditor",
     "DocumentCodeAuditor",
     "MoneyAuditor",
+    "DateAuditor",
     "TimelineAuditor",
     "PercentageAuditor",
-    "ClauseAuditor",
+    "FinancialMathAuditor",
     "run_cross_audit",
 ]
