@@ -26,3 +26,9 @@ Thumbs.db
 .pytest_cache/
 htmlcov/
 .coverage
+
+# Database & Local Data
+*.db
+*.sqlite
+*.sqlite3
+paip.db
