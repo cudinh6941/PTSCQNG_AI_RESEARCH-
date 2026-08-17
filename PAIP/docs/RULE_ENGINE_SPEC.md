@@ -150,3 +150,4 @@ PAIP/core/rule_engine/
 2. **Crowdsourced Suggestion Flow (End-user):**
    - Nút tương tác nhanh *"Đề xuất từ mới vào Từ điển"* khi người dùng phát hiện thuật ngữ chưa có trong hệ thống.
    - Hàng đợi `Pending Approval` dành cho Admin phê duyệt trước khi kích hoạt.
+

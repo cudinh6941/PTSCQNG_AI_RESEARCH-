@@ -411,6 +411,8 @@ class ProofreaderService:
             err_type = ErrorType.PUNCTUATION
         elif "word" in raw_type or "từ" in raw_type:
             err_type = ErrorType.WORD_CHOICE
+        elif "consist" in raw_type or "nhất quán" in raw_type or "bất nhất" in raw_type or "đối soát" in raw_type:
+            err_type = ErrorType.CONSISTENCY
         else:
             err_type = ErrorType.SPELLING
 

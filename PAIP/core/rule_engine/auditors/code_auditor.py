@@ -31,6 +31,16 @@ class DocumentCodeAuditor(BaseAuditor):
     def rule_name(self) -> str:
         return "Document Code Consistency"
 
+    @staticmethod
+    def _extract_doc_type_prefix(suffix: str) -> str:
+        """
+        Trích xuất tiền tố loại văn bản từ suffix.
+
+        VD: "TMCG-TKE" → "TMCG", "TMCG-HCNS" → "TMCG", "QĐ-PTSC" → "QĐ"
+        """
+        parts = suffix.split("-")
+        return parts[0].upper() if parts else suffix.upper()
+
     def audit(self, matrix: EntityMatrix, full_text: str = "") -> list[AuditConflict]:
         codes = matrix.document_codes
         if len(codes) < 2:
@@ -38,8 +48,9 @@ class DocumentCodeAuditor(BaseAuditor):
 
         conflicts: list[AuditConflict] = []
 
-        # Gom nhóm theo suffix (cơ quan ban hành / loại văn bản)
-        # VD suffix: "TMCG-TKE", "HĐ-PTSC", "QĐ-PTSC"
+        # ── Chiến lược 1: Gom nhóm theo SUFFIX ──────────────────────
+        # Phát hiện: cùng loại văn bản nhưng khác số hiệu
+        # VD: 43/TMCG-TKE vs 46/TMCG-TKE (copy paste đổi số thiếu)
         suffix_groups: dict[str, list[ExtractedEntity]] = defaultdict(list)
         for code in codes:
             suffix = code.extra.get("doc_suffix", "")
@@ -97,5 +108,106 @@ class DocumentCodeAuditor(BaseAuditor):
                                 },
                             )
                         )
+
+        # ── Chiến lược 2: Gom nhóm theo DOC_NUMBER ──────────────────
+        # Phát hiện: cùng số nhưng khác phòng ban / mã đơn vị (sai suffix)
+        # VD: 48/TMCG-HCNS vs 48/TMCG-TKE (cùng số 48, cùng loại TMCG, nhưng sai phòng ban)
+        number_groups: dict[str, list[ExtractedEntity]] = defaultdict(list)
+        for code in codes:
+            doc_number = code.extra.get("doc_number", "")
+            if doc_number:
+                number_groups[doc_number].append(code)
+
+        # Tập hợp các cặp đã bắt ở Chiến lược 1 để tránh báo trùng
+        already_flagged = {
+            (c.extra["primary_code"], c.extra["conflict_code"])
+            for c in conflicts
+            if c.extra and "primary_code" in c.extra
+        }
+
+        for doc_number, group in number_groups.items():
+            if len(group) < 2:
+                continue
+
+            unique_suffixes = {e.extra.get("doc_suffix", "").upper(): e for e in group}
+            if len(unique_suffixes) < 2:
+                continue  # Cùng suffix → đã xử lý ở Chiến lược 1
+
+            # Phân nhóm con theo doc_type_prefix (VD: "TMCG", "QĐ", "HĐ")
+            # Chỉ flag khi cùng doc_type_prefix nhưng khác phòng ban
+            prefix_subgroups: dict[str, list[ExtractedEntity]] = defaultdict(list)
+            for code in group:
+                suffix = code.extra.get("doc_suffix", "")
+                prefix = self._extract_doc_type_prefix(suffix)
+                if prefix:
+                    prefix_subgroups[prefix].append(code)
+
+            for prefix, subgroup in prefix_subgroups.items():
+                if len(subgroup) < 2:
+                    continue
+
+                unique_in_subgroup = {e.normalized_value: e for e in subgroup}
+                if len(unique_in_subgroup) < 2:
+                    continue  # Hoàn toàn giống nhau → OK
+
+                # Ưu tiên mã ở header làm chuẩn
+                primary = next((e for e in subgroup if e.section == "header"), subgroup[0])
+
+                for other in subgroup:
+                    if other.normalized_value == primary.normalized_value:
+                        continue
+
+                    pair = (primary.normalized_value, other.normalized_value)
+                    reverse_pair = (other.normalized_value, primary.normalized_value)
+                    if pair in already_flagged or reverse_pair in already_flagged:
+                        continue
+
+                    # Loại trừ ngữ cảnh trích dẫn có chủ đích
+                    ctx = other.context_snippet.lower()
+                    if any(kw in ctx for kw in ("thay thế cho", "căn cứ theo số", "hủy bỏ số", "sửa đổi số")):
+                        continue
+
+                    primary_suffix = primary.extra.get("doc_suffix", "")
+                    other_suffix = other.extra.get("doc_suffix", "")
+
+                    conflicts.append(
+                        AuditConflict(
+                            rule_id=self.rule_id,
+                            rule_name=self.rule_name,
+                            severity=RuleSeverity.ERROR,
+                            description=(
+                                f"Mã phòng ban bất nhất: cùng số {doc_number} loại '{prefix}' nhưng "
+                                f"{primary.section.upper()} ghi '/{primary_suffix}' còn "
+                                f"{other.section.upper()} ghi '/{other_suffix}'"
+                            ),
+                            original_text=other.raw_text,
+                            suggested_fix=primary.normalized_value,
+                            explanation=(
+                                f"Phát hiện cùng số hiệu ({doc_number}) và cùng loại văn bản ({prefix}) "
+                                f"nhưng mã phòng ban/đơn vị phát hành không đồng nhất: "
+                                f"'{primary.normalized_value}' vs '{other.normalized_value}'. "
+                                f"Đây thường là lỗi copy mẫu từ phòng ban khác hoặc gõ sai mã đơn vị."
+                            ),
+                            side_a={
+                                "label": f"Vế chính ({primary.section.title()})",
+                                "value": primary.normalized_value,
+                                "location": f"Dòng {primary.line_number}" if primary.line_number else "Phần đầu văn bản",
+                            },
+                            side_b={
+                                "label": f"Vế xung đột ({other.section.title()})",
+                                "value": other.normalized_value,
+                                "location": f"Dòng {other.line_number}" if other.line_number else "Nội dung/Phụ lục",
+                            },
+                            span=other.span,
+                            extra={
+                                "primary_code": primary.normalized_value,
+                                "conflict_code": other.normalized_value,
+                                "doc_number": doc_number,
+                                "primary_suffix": primary_suffix,
+                                "conflict_suffix": other_suffix,
+                            },
+                        )
+                    )
+                    already_flagged.add(pair)
 
         return conflicts
