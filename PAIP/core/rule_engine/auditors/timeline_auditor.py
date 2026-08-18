@@ -50,12 +50,31 @@ class TimelineAuditor(BaseAuditor):
             unique_combinations = set()
 
             for d in valid_dates:
-                dt_obj: datetime.date = d.extra.get("date_obj")
+                dt_obj = d.extra.get("date_obj")
+                if isinstance(dt_obj, str):
+                    try:
+                        dt_obj = datetime.date.fromisoformat(dt_obj[:10])
+                    except ValueError:
+                        continue
+                if not isinstance(dt_obj, datetime.date):
+                    continue
+                
                 date_str = dt_obj.strftime("%d/%m/%Y")
                 
                 for dur in durations:
-                    delta: datetime.timedelta = dur.extra.get("delta")
-                    if delta:
+                    delta = dur.extra.get("delta")
+                    if isinstance(delta, str):
+                        val = dur.extra.get("value")
+                        unit = dur.extra.get("unit")
+                        if val is not None and unit:
+                            if unit == "ngày":
+                                delta = datetime.timedelta(days=val)
+                            elif unit == "tháng":
+                                delta = datetime.timedelta(days=val * 30)
+                            elif unit == "năm":
+                                delta = datetime.timedelta(days=val * 365)
+                    
+                    if delta and isinstance(delta, datetime.timedelta):
                         dur_str = dur.raw_text.lower().strip()
                         combo_key = (date_str, dur_str)
                         
@@ -85,10 +104,21 @@ class TimelineAuditor(BaseAuditor):
         if issued_dates and deadlines:
             primary_issued = issued_dates[0]
             issued_dt = primary_issued.extra.get("date_obj")
+            if isinstance(issued_dt, str):
+                try:
+                    issued_dt = datetime.date.fromisoformat(issued_dt[:10])
+                except ValueError:
+                    pass
 
             for dl in deadlines:
                 dl_dt = dl.extra.get("date_obj")
-                if issued_dt and dl_dt and issued_dt > dl_dt:
+                if isinstance(dl_dt, str):
+                    try:
+                        dl_dt = datetime.date.fromisoformat(dl_dt[:10])
+                    except ValueError:
+                        pass
+                
+                if isinstance(issued_dt, datetime.date) and isinstance(dl_dt, datetime.date) and issued_dt > dl_dt:
                     role_label = "Hạn nộp hồ sơ / Hạn chót" if dl.extra.get("role") == "deadline" else "Ngày hoàn thành"
                     conflicts.append(
                         AuditConflict(

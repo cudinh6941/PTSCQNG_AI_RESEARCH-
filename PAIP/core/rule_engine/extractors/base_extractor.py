@@ -19,6 +19,7 @@ class EntityType(str, Enum):
     DURATION = "duration"                # Thời lượng: 3 ngày, 6 tháng, 1 năm
     PERCENTAGE = "percentage"            # Tỷ lệ %: 30%, 50%
     PARTY = "party"                      # Tên đối tác / bên ký
+    CLAUSE_REF = "clause_ref"            # Tham chiếu điều khoản
 
 
 class ExtractedEntity(BaseModel):
@@ -61,6 +62,8 @@ class EntityMatrix(BaseModel):
     durations: list[ExtractedEntity] = Field(default_factory=list)
     percentages: list[ExtractedEntity] = Field(default_factory=list)
     parties: list[ExtractedEntity] = Field(default_factory=list)
+    clause_refs: list[ExtractedEntity] = Field(default_factory=list)
+    actual_clauses: list[int] = Field(default_factory=list)
 
     @property
     def total_entities(self) -> int:
